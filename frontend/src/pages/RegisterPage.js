@@ -5,10 +5,22 @@ function RegisterPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Gérer l'inscription
+
+    // Vérifier si les mots de passe correspondent
+    if (password !== confirmPassword) {
+      setErrorMessage('Les mots de passe ne correspondent pas.');
+      return;
+    }
+
+    // Réinitialiser le message d'erreur
+    setErrorMessage('');
+
+    // Gérer l'inscription (envoyer les données au backend par exemple)
     console.log('Inscription avec', username, email, password);
   };
 
@@ -39,7 +51,7 @@ function RegisterPage() {
               required
             />
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-gray-700">Mot de Passe</label>
             <input
               type="password"
@@ -50,6 +62,23 @@ function RegisterPage() {
               required
             />
           </div>
+          <div className="mb-6">
+            <label className="block text-gray-700">Confirmer le Mot de Passe</label>
+            <input
+              type="password"
+              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="********"
+              required
+            />
+          </div>
+
+          {/* Afficher un message d'erreur si les mots de passe ne correspondent pas */}
+          {errorMessage && (
+            <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
+          )}
+
           <button className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">
             S'inscrire
           </button>

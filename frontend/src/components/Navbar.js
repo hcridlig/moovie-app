@@ -116,6 +116,15 @@ function Navbar() {
                   </li>
                   <li>
                     <Link
+                      to="/watched"
+                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Déjà vu
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
                       to="/plateformes"
                       className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
                       onClick={() => setMenuOpen(false)}
