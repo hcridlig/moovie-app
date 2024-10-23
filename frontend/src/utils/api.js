@@ -13,13 +13,40 @@ const getAuthConfig = () => {
   };
 };
 
-export const getMovieById = async (id) => {
+/*export const getMovieById = async (id) => {
   const response = await axios.get(`${API_URL}/movies/${id}`);
   return response.data;
 };
 
 export const getSeriesById = async (id) => {
   const response = await axios.get(`${API_URL}/series/${id}`);
+  return response.data;
+};*/
+
+export const getUserProfile = async () => {
+  const response = await axios.get(`${API_URL}/users/me`, {
+    headers: {
+      Authorization: localStorage.getItem('token'),
+    },
+  });
+  return response.data;
+};
+
+export const updateUserProfile = async (data) => {
+  const response = await axios.put(`${API_URL}/users/me`, data, {
+    headers: {
+      Authorization: localStorage.getItem('token'),
+    },
+  });
+  return response.data;
+};
+
+export const updatePassword = async (passwordData) => {
+  const response = await axios.put(`${API_URL}/users/me/password`, passwordData, {
+    headers: {
+      Authorization: localStorage.getItem('token'),
+    },
+  });
   return response.data;
 };
 

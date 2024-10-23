@@ -16,4 +16,13 @@ router.post('/me/watched', authMiddleware, userController.addWatchedItem);
 // Récupérer les éléments vus par l'utilisateur
 router.get('/me/watched', authMiddleware, userController.getWatchedItems);
 
+// Récupérer les informations de l'utilisateur connecté
+router.get('/me', authMiddleware, userController.getProfile);
+
+// Mettre à jour les informations de l'utilisateur
+router.put('/me', authMiddleware, userController.updateProfile);
+
+// Changer le mot de passe
+router.put('/me/password', authMiddleware, userController.changePassword);
+
 module.exports = router;
