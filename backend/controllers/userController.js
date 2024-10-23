@@ -46,6 +46,29 @@ const userController = {
       res.status(500).json({ message: 'Erreur lors de la récupération des éléments vus.' });
     }
   },
+
+  changePassword: async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+      const user = await User.findById(req.user.id);
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Le mot de passe actuel est incorrect.' });
+      }
+
+      // Hasher le nouveau mot de passe
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      user.password = hashedPassword;
+      await user.save();
+
+      res.json({ message: 'Mot de passe mis à jour avec succès.' });
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la mise à jour du mot de passe.' });
+    }
+  },
 };
 
 module.exports = userController;
