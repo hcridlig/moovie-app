@@ -4,6 +4,8 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/auth');
 
+router.get('/', userController.getAllUsers);
+
 // Récupérer les informations de l'utilisateur connecté
 router.get('/me', authMiddleware, userController.getProfile);
 

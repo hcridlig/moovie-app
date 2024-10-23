@@ -9,7 +9,7 @@ module.exports = {
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
-    dialect: require('pg'),
+    dialect: 'postgres',
     port: process.env.DB_PORT || 5432,
     dialectOptions: {
       ssl: {
