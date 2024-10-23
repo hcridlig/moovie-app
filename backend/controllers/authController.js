@@ -49,7 +49,7 @@ const authController = {
       }
 
       // Créer un token JWT
-      const token = jwt.sign({ id: user._id }, 'votre_secret_jwt', { expiresIn: '1h' });
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1w' });
 
       res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
     } catch (error) {
