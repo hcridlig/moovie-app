@@ -1,10 +1,10 @@
 const { DataTypes, Sequelize } = require('sequelize');
-const config = require('../config/db');
+const config = require('../config/db');  // Reference to your Sequelize database connection
 
 const sequelize = new Sequelize(config.development);
 
-const Movie = sequelize.define('movie', {
-  idmovie: {
+const Serie = sequelize.define('serie', {
+  idserie: {
     type: DataTypes.INTEGER,
     allowNull: false,
     autoIncrement: true,
@@ -35,11 +35,11 @@ const Movie = sequelize.define('movie', {
     allowNull: false,
   },
 }, {
-  tableName: 'movies',
-  timestamps: false,
+  tableName: 'serie',  // Optional: defines the table name
+  timestamps: true,     // Optional: adds `createdAt` and `updatedAt` fields
 });
 
-module.exports = { 
-  Movie, 
-  sequelize 
+module.exports = {
+  Serie,
+  sequelize
 };
