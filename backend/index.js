@@ -2,19 +2,14 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const dbConfig = require('./config/db');
 
 const app = express();
 
 // Configuration
 app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Connexion à la base de données
-mongoose.connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connecté à la base de données'))
-  .catch(err => console.log('Erreur de connexion à la base de données:', err));
 
 // Routes
 const authRoutes = require('./routes/auth');
