@@ -13,7 +13,7 @@ const getAuthConfig = () => {
   };
 };
 
-/*export const getMovieById = async (id) => {
+export const getMovieById = async (id) => {
   const response = await axios.get(`${API_URL}/movies/${id}`);
   return response.data;
 };
@@ -21,7 +21,7 @@ const getAuthConfig = () => {
 export const getSeriesById = async (id) => {
   const response = await axios.get(`${API_URL}/series/${id}`);
   return response.data;
-};*/
+};
 
 export const getUserProfile = async () => {
   const response = await axios.get(`${API_URL}/users/me`, {
