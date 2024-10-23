@@ -16,9 +16,9 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const movieRoutes = require('./routes/movies');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/movies', movieRoutes);
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/movies', movieRoutes);
 
 // Démarrer le serveur
 const PORT = process.env.PORT || 5000;
