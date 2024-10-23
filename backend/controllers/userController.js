@@ -1,8 +1,16 @@
 // backend/controllers/userController.js
-const User = require('../models/User');
-const Movie = require('../models/Movie');
+const { User } = require('../models/User');
 
 const userController = {
+  getAllUsers: async (req, res) => {
+    try {
+      const users = await User.findAll();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs.' });
+    }
+  },
+
   getProfile: async (req, res) => {
     try {
       const user = await User.findById(req.user.id).select('-password');
