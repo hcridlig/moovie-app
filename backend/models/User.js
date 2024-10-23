@@ -4,7 +4,7 @@ const config = require('../config/db');  // Reference to your Sequelize database
 const sequelize = new Sequelize(config.development);
 
 const User = sequelize.define('user', {
-  iduser: {
+  user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     autoIncrement: true,
@@ -12,12 +12,12 @@ const User = sequelize.define('user', {
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,  // Changed to true based on the provided schema
     unique: true,
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,  // Changed to true based on the provided schema
     unique: true,
     validate: {
       isEmail: true,
@@ -25,19 +25,22 @@ const User = sequelize.define('user', {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,  // Changed to true based on the provided schema
   },
-  role: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: 'user',  // e.g. 'admin', 'user', etc.
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: Sequelize.fn('NOW'),  // Default value based on your schema
+  },
+  last_login: {
+    type: DataTypes.DATE,  // Adding last_login field
+    allowNull: true,  // Allows null values
   },
 }, {
-  tableName: 'users',  // Optional: defines the table name
-  timestamps: true,    // Adds `createdAt` and `updatedAt` fields
+  tableName: 'users',  // Changed to match the provided SQL table name
+  timestamps: false,    // Disabled to avoid auto-generated createdAt and updatedAt fields
 });
 
 module.exports = {
   User, 
-  sequelize
- };
+  sequelize,
+};
