@@ -7,22 +7,48 @@ function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const apiUrl = process.env.REACT_APP_API_URL;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Vérifier si les mots de passe correspondent
     if (password !== confirmPassword) {
       setErrorMessage('Les mots de passe ne correspondent pas.');
       return;
     }
-
+  
     // Réinitialiser le message d'erreur
     setErrorMessage('');
-
-    // Gérer l'inscription (envoyer les données au backend par exemple)
-    console.log('Inscription avec', username, email, password);
+  
+    try {
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        console.log('Inscription réussie:', data);
+        // Handle success (e.g., redirect to login page)
+      } else {
+        console.error('Erreur:', data);
+        setErrorMessage(data.message || 'Une erreur est survenue.');
+      }
+    } catch (error) {
+      console.error('Erreur de réseau:', error);
+      setErrorMessage('Erreur de réseau. Veuillez réessayer plus tard.');
+    }
   };
+  
 
   return (
     <div className="container mx-auto px-4 py-16 mt-10">

@@ -5,11 +5,12 @@ const jwt = require('jsonwebtoken');
 
 const authController = {
   register: async (req, res) => {
+    console.log('register');
     try {
       const { username, email, password } = req.body;
 
       // Vérifier si l'utilisateur existe déjà
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
         return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
       }
@@ -28,6 +29,7 @@ const authController = {
 
       res.status(201).json({ message: 'Utilisateur créé avec succès.' });
     } catch (error) {
+      console.error(error);  // Log the error for better debugging
       res.status(500).json({ message: 'Erreur lors de la création de l\'utilisateur.' });
     }
   },
@@ -37,7 +39,7 @@ const authController = {
       const { email, password } = req.body;
 
       // Vérifier si l'utilisateur existe
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ where: { email } });
       if (!user) {
         return res.status(400).json({ message: 'Email ou mot de passe incorrect.' });
       }
