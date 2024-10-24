@@ -30,7 +30,7 @@ function HomePage() {
       <SearchBar onSearch={handleSearch} />
 
       <section className="mt-8">
-        <h2 className="text-2xl font-semibold mb-4">Recommandations pour vous</h2>
+        <h2 className="text-2xl font-semibold mb-4">Recommandations pour</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {recommendations.map((item) => (
             <MovieCard key={item.id} item={item} />
