@@ -3,12 +3,37 @@ import React, { useState } from 'react';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(''); 
+  const apiUrl = process.env.REACT_APP_API_URL;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Gérer la connexion
-    console.log('Connexion avec', email, password);
+
+    try {
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la connexion');
+      }
+
+      const data = await response.json();
+      console.log('Réponse API:', data);
+      // Gérer la redirection ou le stockage du token ici
+
+    } catch (err) {
+      setError(err.message);
+      console.error('Erreur:', err);
+    }
   };
 
   return (
