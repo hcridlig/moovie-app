@@ -6,12 +6,13 @@ import MovieCard from '../components/MovieCard';
 function WatchedPage() {
   const [watchedItems, setWatchedItems] = useState([]);
   const [groupedByPlatform, setGroupedByPlatform] = useState({});
+  const apiUrl = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
     // Appel à l'API pour récupérer les films et séries vus par l'utilisateur
     const fetchWatchedItems = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/users/me/watched', {
+        const response = await axios.get(`${apiUrl}/api/users/me/watched`, {
           headers: {
             Authorization: localStorage.getItem('token'), // Assurez-vous que le token JWT est bien dans le localStorage
           },

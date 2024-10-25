@@ -1,7 +1,7 @@
 // frontend/src/utils/api.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api'; // URL de votre backend
+const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
 
 // Configurer le token d'authentification si nécessaire
 const getAuthConfig = () => {
@@ -14,40 +14,72 @@ const getAuthConfig = () => {
 };
 
 export const getMovieById = async (id) => {
-  const response = await axios.get(`${API_URL}/movies/${id}`);
+  const response = await axios.get(`${apiUrl}/movies/${id}`);
   return response.data;
 };
 
 export const getSeriesById = async (id) => {
-  const response = await axios.get(`${API_URL}/series/${id}`);
+  const response = await axios.get(`${apiUrl}/series/${id}`);
   return response.data;
 };
 
+// Récupérer les informations du profil de l'utilisateur connecté
 export const getUserProfile = async () => {
-  const response = await axios.get(`${API_URL}/users/me`, {
+  const token = localStorage.getItem('token'); // Récupérer le token du localStorage
+  const response = await fetch(`${apiUrl}/users/me`, {
+    method: 'GET',
     headers: {
-      Authorization: localStorage.getItem('token'),
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`, // Inclure le token dans l'en-tête d'autorisation
     },
   });
-  return response.data;
+
+  if (!response.ok) {
+    throw new Error('Erreur lors de la récupération des informations utilisateur.');
+  }
+
+  const data = await response.json();
+  return data;
 };
 
-export const updateUserProfile = async (data) => {
-  const response = await axios.put(`${API_URL}/users/me`, data, {
+// Mettre à jour les informations de l'utilisateur connecté
+export const updateUserProfile = async (userData) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${apiUrl}/users/me`, {
+    method: 'PUT',
     headers: {
-      Authorization: localStorage.getItem('token'),
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
+    body: JSON.stringify(userData),
   });
-  return response.data;
+
+  if (!response.ok) {
+    throw new Error('Erreur lors de la mise à jour du profil.');
+  }
+
+  const data = await response.json();
+  return data;
 };
 
+// Mettre à jour le mot de passe de l'utilisateur
 export const updatePassword = async (passwordData) => {
-  const response = await axios.put(`${API_URL}/users/me/password`, passwordData, {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${apiUrl}/users/me/password`, {
+    method: 'PUT',
     headers: {
-      Authorization: localStorage.getItem('token'),
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
+    body: JSON.stringify(passwordData),
   });
-  return response.data;
+
+  if (!response.ok) {
+    throw new Error('Erreur lors de la mise à jour du mot de passe.');
+  }
+
+  const data = await response.json();
+  return data;
 };
 
 // Autres fonctions API...

@@ -1,11 +1,15 @@
 // src/pages/LoginPage.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext'; // Importer le contexte
 
 function LoginPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState(''); 
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL;
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext); // Utiliser le contexte pour gérer l'état de connexion
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,12 +27,19 @@ function LoginPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la connexion');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de la connexion');
       }
 
       const data = await response.json();
-      console.log('Réponse API:', data);
-      // Gérer la redirection ou le stockage du token ici
+
+      // Utiliser la fonction login du contexte pour stocker les infos utilisateur
+      login(data.token, data.user.username);
+      console.log(data.token);
+      console.log(data.user);
+
+      // Rediriger après connexion
+      navigate('/');
 
     } catch (err) {
       setError(err.message);
@@ -41,6 +52,7 @@ function LoginPage() {
       <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-center mb-6">Connexion</h2>
         <form onSubmit={handleSubmit}>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
           <div className="mb-4">
             <label className="block text-gray-700">Adresse Email</label>
             <input

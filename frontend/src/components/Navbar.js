@@ -1,27 +1,31 @@
-// src/components/Navbar.js
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext'; // Importer le contexte
 
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const { isAuthenticated, username, logout } = useContext(AuthContext); // Utiliser le contexte
+  const navigate = useNavigate();
 
   const handleSearch = () => {
     console.log('Rechercher :', searchQuery);
-    // Rediriger vers la page de résultats ou traiter la recherche ici
+  };
+
+  const handleLogout = () => {
+    logout(); // Appeler la fonction de déconnexion depuis le contexte
+    navigate('/login');
   };
 
   return (
     <nav className="bg-white shadow-md fixed top-0 left-0 w-full z-50">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        {/* Logo du site */}
         <div className="flex-shrink-0">
           <Link to="/" className="text-2xl font-bold text-indigo-600">
             MovieFlix
           </Link>
         </div>
 
-        {/* Barre de recherche avec bouton */}
         <div className="relative flex-1 mx-4 max-w-sm">
           <input
             type="text"
@@ -30,7 +34,6 @@ function Navbar() {
             placeholder="Rechercher..."
             className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
           />
-          {/* Bouton de recherche discret */}
           <button
             onClick={handleSearch}
             className="absolute right-2 top-2 text-gray-500 hover:text-indigo-600"
@@ -52,20 +55,29 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Boutons Se Connecter et S'inscrire */}
         <div className="flex items-center space-x-4">
-          <Link
-            to="/login"
-            className="text-gray-600 hover:text-indigo-600 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition"
-          >
-            Se Connecter
-          </Link>
-          <Link
-            to="/register"
-            className="text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md transition"
-          >
-            S'inscrire
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/profile" className="text-gray-600 hover:text-indigo-600">
+                Bonjour, {username}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="text-gray-600 hover:text-indigo-600 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition"
+              >
+                Se Connecter
+              </Link>
+              <Link
+                to="/register"
+                className="text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md transition"
+              >
+                S'inscrire
+              </Link>
+            </>
+          )}
 
           {/* Bouton Menu */}
           <div className="relative">
@@ -83,58 +95,63 @@ function Navbar() {
               </svg>
             </button>
 
-            {/* Menu déroulant avec un style plus moderne */}
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-10">
-                <ul className="py-2">
-                  <li>
-                    <Link
-                      to="/classement"
-                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Classement
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/films"
-                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Films
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/series"
-                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Séries
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/watched"
-                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Déjà vu
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/plateformes"
-                      className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Par Plateformes
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            )}
+            {/* Menu déroulant avec un style moderne */}
+            <div
+              className={`${
+                menuOpen ? 'block' : 'hidden'
+              } absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-10`}
+            >
+              <ul className="py-2">
+                <li>
+                  <Link
+                    to="/classement"
+                    className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Classement
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/films"
+                    className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Films
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/series"
+                    className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Séries
+                  </Link>
+                </li>
+                {isAuthenticated && (
+                  <>
+                    <li>
+                      <Link
+                        to="/watched"
+                        className="block px-4 py-2 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        Déjà vu
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 transition"
+                      >
+                        Déconnexion
+                      </button>
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
           </div>
         </div>
       </div>
