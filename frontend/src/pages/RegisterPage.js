@@ -1,5 +1,6 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -8,19 +9,20 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL;
+  const navigate = useNavigate(); // Hook pour rediriger après inscription réussie
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     // Vérifier si les mots de passe correspondent
     if (password !== confirmPassword) {
       setErrorMessage('Les mots de passe ne correspondent pas.');
       return;
     }
-  
+
     // Réinitialiser le message d'erreur
     setErrorMessage('');
-  
+
     try {
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
@@ -33,12 +35,13 @@ function RegisterPage() {
           password,
         }),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         console.log('Inscription réussie:', data);
-        // Handle success (e.g., redirect to login page)
+        // Rediriger vers la page de connexion après inscription réussie
+        navigate('/login');
       } else {
         console.error('Erreur:', data);
         setErrorMessage(data.message || 'Une erreur est survenue.');
@@ -48,7 +51,6 @@ function RegisterPage() {
       setErrorMessage('Erreur de réseau. Veuillez réessayer plus tard.');
     }
   };
-  
 
   return (
     <div className="container mx-auto px-4 py-16 mt-10">
@@ -100,7 +102,6 @@ function RegisterPage() {
             />
           </div>
 
-          {/* Afficher un message d'erreur si les mots de passe ne correspondent pas */}
           {errorMessage && (
             <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
           )}

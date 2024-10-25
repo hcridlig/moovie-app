@@ -1,42 +1,47 @@
-// src/pages/ProfilePage.js
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, updatePassword } from '../utils/api';
 
 function ProfilePage() {
   const [user, setUser] = useState({
     username: '',
     email: '',
-    platforms: [],
+    created_at: '',
   });
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState({
     username: '',
     email: '',
-    platforms: '',
   });
-
   const [passwordEditing, setPasswordEditing] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
-
   const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Récupérer les informations de l'utilisateur connecté via l'API
-    async function fetchUserProfile() {
-      const profileData = await getUserProfile();
-      setUser(profileData);
-      setUpdatedUser({
-        username: profileData.username,
-        email: profileData.email,
-        platforms: profileData.platforms.join(', '), // Afficher les plateformes en tant que chaîne
-      });
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    } else {
+      async function fetchUserProfile() {
+        try {
+          const profileData = await getUserProfile();
+          setUser(profileData);
+          setUpdatedUser({
+            username: profileData.username,
+            email: profileData.email,
+          });
+        } catch (error) {
+          console.error("Erreur lors de la récupération des données de l'utilisateur", error);
+        }
+      }
+      fetchUserProfile();
     }
-    fetchUserProfile();
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,15 +61,13 @@ function ProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Transformer les plateformes en tableau avant de soumettre les données
-    const platformsArray = updatedUser.platforms.split(',').map((p) => p.trim());
-    const updatedData = {
-      ...updatedUser,
-      platforms: platformsArray,
-    };
-    await updateUserProfile(updatedData);
-    setUser(updatedData); // Mettre à jour les informations affichées
-    setEditing(false); // Désactiver le mode édition
+    try {
+      await updateUserProfile(updatedUser); // Mettre à jour le profil via l'API
+      setUser(updatedUser);
+      setEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du profil", error);
+    }
   };
 
   const handlePasswordSubmit = async (e) => {
@@ -87,84 +90,88 @@ function ProfilePage() {
       setPasswordError('');
       setPasswordEditing(false);
     } catch (error) {
-      setPasswordError('Erreur lors de la modification du mot de passe. Vérifiez votre mot de passe actuel.');
+      setPasswordError('Erreur lors de la modification du mot de passe.');
     }
+  };
+
+  const handleCancelEdit = () => {
+    setUpdatedUser({
+      username: user.username,
+      email: user.email,
+    });
+    setEditing(false);
+  };
+
+  const handleCancelPasswordEdit = () => {
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    setPasswordError('');
+    setPasswordEditing(false);
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-4">Mon Profil</h1>
 
-      {!editing ? (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Nom d'utilisateur:</label>
-            <p className="text-gray-600">{user.username}</p>
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Email:</label>
-            <p className="text-gray-600">{user.email}</p>
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Plateformes de streaming:</label>
-            <p className="text-gray-600">{user.platforms.join(', ')}</p>
-          </div>
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="mb-4">
+          <label className="block text-gray-700 font-semibold">Nom d'utilisateur:</label>
+          <p className="text-gray-600">{user.username}</p>
+          {editing && (
+            <input
+              type="text"
+              name="username"
+              value={updatedUser.username}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded mt-2"
+            />
+          )}
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-semibold">Email:</label>
+          <p className="text-gray-600">{user.email}</p>
+          {editing && (
+            <input
+              type="email"
+              name="email"
+              value={updatedUser.email}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded mt-2"
+            />
+          )}
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-semibold">Date de création du compte:</label>
+          <p className="text-gray-600">{new Date(user.created_at).toLocaleDateString()}</p>
+        </div>
+
+        {!editing ? (
           <button
             className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
             onClick={() => setEditing(true)}
           >
             Modifier mes informations
           </button>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Nom d'utilisateur:</label>
-            <input
-              type="text"
-              name="username"
-              value={updatedUser.username}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Email:</label>
-            <input
-              type="email"
-              name="email"
-              value={updatedUser.email}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold">Plateformes de streaming (séparées par des virgules):</label>
-            <input
-              type="text"
-              name="platforms"
-              value={updatedUser.platforms}
-              onChange={handleChange}
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div className="flex items-center space-x-4">
+        ) : (
+          <div className="flex space-x-4">
             <button
-              type="submit"
+              onClick={handleSubmit}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
               Enregistrer
             </button>
             <button
-              type="button"
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              onClick={() => setEditing(false)}
+              onClick={handleCancelEdit}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
-              Annuler
+              Annuler la modification
             </button>
           </div>
-        </form>
-      )}
+        )}
+      </div>
 
       <h2 className="text-2xl font-bold mt-8">Modifier mon mot de passe</h2>
 
@@ -208,7 +215,7 @@ function ProfilePage() {
             />
           </div>
           {passwordError && <p className="text-red-500 mb-4">{passwordError}</p>}
-          <div className="flex items-center space-x-4">
+          <div className="flex space-x-4">
             <button
               type="submit"
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -216,11 +223,10 @@ function ProfilePage() {
               Enregistrer le mot de passe
             </button>
             <button
-              type="button"
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              onClick={() => setPasswordEditing(false)}
+              onClick={handleCancelPasswordEdit}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
-              Annuler
+              Annuler la modification
             </button>
           </div>
         </form>
