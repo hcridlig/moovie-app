@@ -1,11 +1,25 @@
+// backend/server.js
 const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
 const app = express();
-const port = 3000; // or any other port you prefer
 
-app.get('/', (req, res) => {
-  res.send('Hello, welcome to my Express API!');
-});
+// Configuration
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.listen(port, () => {
-  console.log(`API is running at http://localhost:${port}`);
+
+// Routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+
+// Démarrer le serveur
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Serveur démarré sur le port ${PORT}`);
 });
