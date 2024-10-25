@@ -1,6 +1,7 @@
 // backend/controllers/userController.js
 const { User } = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const userController = {
   getAllUsers: async (req, res) => {
@@ -87,9 +88,13 @@ const userController = {
 
   changePassword: async (req, res) => {
     const { currentPassword, newPassword } = req.body;
+    
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     try {
-      const user = await User.findById(req.user.id);
+      const user = await User.findOne({ where: { user_id: decoded.id } });
       const isMatch = await bcrypt.compare(currentPassword, user.password);
 
       if (!isMatch) {
