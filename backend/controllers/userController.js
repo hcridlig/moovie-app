@@ -6,7 +6,9 @@ const bcrypt = require('bcryptjs');
 const userController = {
   getAllUsers: async (req, res) => {
     try {
-      const users = await User.findAll();
+      const users = await User.findAll({
+        attributes: { exclude: ['password'] } // Exclude password from the result
+      });
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs.' });
