@@ -14,9 +14,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const mooviesRoutes = require('./routes/moovies');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use('/moovies', mooviesRoutes);
 
 // Démarrer le serveur
 const PORT = process.env.PORT || 5000;
