@@ -21,7 +21,7 @@ function App() {
     <AuthProvider>
       <SettingsProvider> {/* Assurez-vous d'englober toute l'application avec SettingsProvider */}
         <Router>
-          <div className="flex flex-col min-h-screen">
+          <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
             <Navbar />
             <main className="flex-grow bg-gray-100 dark:bg-gray-900"> {/* Ajout de la classe pour le mode sombre */}
               <Routes>
