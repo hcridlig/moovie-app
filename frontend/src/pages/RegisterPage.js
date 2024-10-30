@@ -1,6 +1,8 @@
 // src/pages/RegisterPage.js
-import React, { useState } from 'react';
+
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SettingsContext } from '../contexts/SettingsContext'; // Contexte pour le thème
 import { useTranslation } from 'react-i18next';
 
 function RegisterPage() {
@@ -10,19 +12,18 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL;
-  const navigate = useNavigate(); // Hook pour rediriger après inscription réussie
+  const navigate = useNavigate();
+  const { theme } = useContext(SettingsContext); // Utiliser le thème
   const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Vérifier si les mots de passe correspondent
     if (password !== confirmPassword) {
       setErrorMessage('Les mots de passe ne correspondent pas.');
       return;
     }
 
-    // Réinitialiser le message d'erreur
     setErrorMessage('');
 
     try {
@@ -41,29 +42,25 @@ function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Inscription réussie:', data);
-        // Rediriger vers la page de connexion après inscription réussie
         navigate('/login');
       } else {
-        console.error('Erreur:', data);
         setErrorMessage(data.message || 'Une erreur est survenue.');
       }
     } catch (error) {
-      console.error('Erreur de réseau:', error);
       setErrorMessage('Erreur de réseau. Veuillez réessayer plus tard.');
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-16 mt-10">
-      <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
+      <div className={`max-w-md mx-auto p-8 rounded-lg shadow-lg ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'}`}>
         <h2 className="text-2xl font-semibold text-center mb-6">{t('register')}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">{t('username')}</label>
+            <label className={`block ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{t('username')}</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none"
+              className={`w-full p-2 border rounded mt-1 focus:outline-none ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder={t('username')}
@@ -71,10 +68,10 @@ function RegisterPage() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">{t('emailAddress')}</label>
+            <label className={`block ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{t('emailAddress')}</label>
             <input
               type="email"
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none"
+              className={`w-full p-2 border rounded mt-1 focus:outline-none ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('emailAddress')}
@@ -82,10 +79,10 @@ function RegisterPage() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">{t('password')}</label>
+            <label className={`block ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{t('password')}</label>
             <input
               type="password"
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none"
+              className={`w-full p-2 border rounded mt-1 focus:outline-none ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="********"
@@ -93,10 +90,10 @@ function RegisterPage() {
             />
           </div>
           <div className="mb-6">
-            <label className="block text-gray-700">{t('confirmPassword')}</label>
+            <label className={`block ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>{t('confirmPassword')}</label>
             <input
               type="password"
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none"
+              className={`w-full p-2 border rounded mt-1 focus:outline-none ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="********"
@@ -112,10 +109,10 @@ function RegisterPage() {
             {t('register')}
           </button>
         </form>
-        <p className="text-center text-gray-600 mt-4">
+        <p className={`text-center mt-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
           {t('alreadyHaveAccount')}{' '}
           <a href="/login" className="text-indigo-600 hover:underline">
-          {t('goToLogin')}
+            {t('goToLogin')}
           </a>
         </p>
       </div>

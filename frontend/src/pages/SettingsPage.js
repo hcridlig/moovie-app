@@ -23,8 +23,8 @@ function SettingsPage() {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 max-w-md mx-auto">
         <h3 className="text-xl font-semibold mb-4 dark:text-white">{t('language')}</h3>
         <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-3/4 p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-          <option value="fr">Français</option>
-          <option value="en">English</option>
+          <option value="fr">Français - (France)</option>
+          <option value="en">English - (USA)</option>
         </select>
       </div>
 

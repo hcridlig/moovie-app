@@ -23,7 +23,7 @@ function MovieCard({ item, index }) {
       )}
 
       <img
-        src={item.image}
+        src={item.image ? item.image : 'https://media.istockphoto.com/id/1642381175/fr/vectoriel/cin%C3%A9ma.jpg?s=612x612&w=0&k=20&c=obVOGQkJifaPk9lSf1-YrrmNQAQnHbKSCQ1JvnpDO00='}
         alt={item.title}
         className="w-full h-64 object-cover"
       />

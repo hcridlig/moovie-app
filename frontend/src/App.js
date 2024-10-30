@@ -15,6 +15,7 @@ import WatchedPage from './pages/WatchedPage';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
 import SettingsPage from './pages/SettingsPage';
+import MoviesPage from './pages/MoviesPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/watched" element={<WatchedPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/moviespage" element={<MoviesPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>

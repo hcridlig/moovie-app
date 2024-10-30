@@ -84,7 +84,7 @@ export const getTopMovies = async () => {
 
 export const getMovieById = async (id) => {
   try {
-    const response = await axios.get(`${apiUrl}/moovies/${id}`);
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=4edc74f5d6c3356f7a70a0ff694ecf1b&language=fr-fr&append_to_response=credits`);
     return {
       ...response.data,
       image: response.data.poster_path ? `${imageUrl}${response.data.poster_path}` : '/path/to/default-image.jpg',
@@ -93,5 +93,51 @@ export const getMovieById = async (id) => {
     console.error("Erreur lors de la récupération des détails du film :", error);
     throw error;
   }
+};
+
+// Récupération des plateformes de streaming par pays pour un film spécifique
+export const getStreamingPlatforms = async (id, countryCode) => {
+  if (countryCode === "fr") {
+    countryCode="FR";
+  }
+  else{
+    countryCode="US";
+  }
+ 
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/watch/providers?api_key=4edc74f5d6c3356f7a70a0ff694ecf1b`);
+    const platforms = response.data.results[countryCode];
+
+    return platforms ? {
+      flatrate: platforms.flatrate || [],
+    } : null;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des plateformes de streaming :", error);
+    throw error;
+  }
+};
+
+// Récupère les genres disponibles
+export const getGenres = async () => {
+  const response = await axios.get('/api/genres');
+  return response.data.genres;
+};
+
+// Récupère les langues disponibles
+export const getLanguages = async () => {
+  const response = await axios.get('/api/languages');
+  return response.data.languages;
+};
+
+// Récupère les films en fonction des filtres
+export const getFilteredMovies = async (filters) => {
+  const response = await axios.get('/api/movies', { params: filters });
+  return response.data.results;
+};
+
+// Récupère les plateformes disponibles
+export const getPlatforms = async () => {
+  const response = await axios.get('/api/platforms');
+  return response.data.platforms;
 };
 // Autres fonctions API...
