@@ -1,14 +1,17 @@
 // src/pages/ProfilePage.js
+
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, updatePassword } from '../utils/api';
-import { SettingsContext } from '../contexts/SettingsContext'; // Contexte pour le thème
+import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
+import ProfileSkeleton from '../components/ProfileSkeleton'; // Import du skeleton
 
 function ProfilePage() {
   const { t } = useTranslation();
-  const { theme } = useContext(SettingsContext); // Accès au thème
+  const { theme } = useContext(SettingsContext);
   const [user, setUser] = useState({ username: '', email: '', created_at: '' });
+  const [isLoading, setIsLoading] = useState(true); // État de chargement pour les données de profil
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState({ username: '', email: '' });
   const [passwordEditing, setPasswordEditing] = useState(false);
@@ -28,6 +31,8 @@ function ProfilePage() {
           setUpdatedUser({ username: profileData.username, email: profileData.email });
         } catch (error) {
           console.error(t('errorFetchingData'), error);
+        } finally {
+          setIsLoading(false); // Fin du chargement
         }
       }
       fetchUserProfile();
@@ -84,39 +89,55 @@ function ProfilePage() {
   };
 
   return (
-    <div className={`container mx-auto px-4 py-8 mt-12 max-w-lg mx-auto ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+    <div className={`container mx-auto px-4 py-8 mt-12 max-w-lg ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-4">{t('profile')}</h1>
 
       <div className={`p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="mb-4">
           <label className="block font-semibold">{t('username')}</label>
-          <p className="mb-2">{user.username}</p>
-          {editing && (
-            <input
-              type="text"
-              name="username"
-              value={updatedUser.username}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
-            />
+          {isLoading ? (
+            <ProfileSkeleton theme={theme} width="75%" height="1.5rem" />
+          ) : (
+            <>
+              <p className="mb-2">{user.username}</p>
+              {editing && (
+                <input
+                  type="text"
+                  name="username"
+                  value={updatedUser.username}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+                />
+              )}
+            </>
           )}
         </div>
         <div className="mb-4">
           <label className="block font-semibold">{t('emailAddress')}</label>
-          <p className="mb-2">{user.email}</p>
-          {editing && (
-            <input
-              type="email"
-              name="email"
-              value={updatedUser.email}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
-            />
+          {isLoading ? (
+            <ProfileSkeleton theme={theme} width="75%" height="1.5rem" />
+          ) : (
+            <>
+              <p className="mb-2">{user.email}</p>
+              {editing && (
+                <input
+                  type="email"
+                  name="email"
+                  value={updatedUser.email}
+                  onChange={handleChange}
+                  className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+                />
+              )}
+            </>
           )}
         </div>
         <div className="mb-4">
           <label className="block font-semibold">{t('accountCreationDate')}</label>
-          <p>{new Date(user.created_at).toLocaleDateString()}</p>
+          {isLoading ? (
+            <ProfileSkeleton theme={theme} width="50%" height="1.5rem" />
+          ) : (
+            <p>{new Date(user.created_at).toLocaleDateString()}</p>
+          )}
         </div>
 
         {!editing ? (

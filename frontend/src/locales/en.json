@@ -51,5 +51,21 @@
   "series": "Series",
   "watched": "Already watched",
   "search": "Search",
-  "footerText": "© 2024 MovieFlix. All rights reserved."
+  "footerText": "© 2024 CinéScope. All rights reserved.",
+  "fetchError": "Error fetching movie details",
+  "votes": "votes",
+  "releaseDate": "Release Date",
+  "minutes": "minutes",
+  "genres": "Genres",
+  "budget": "Budget",
+  "revenue": "Revenue",
+  "mainCast": "Main Cast",
+  "runtime": "Runtime",
+  "availableOn": "Available on",
+  "platform": "Platform",
+  "allPlatforms": "All Platforms",
+  "minRating": "Minimum Rating",
+  "releaseYear": "Release Year",
+  "allGenres": "All Genres",
+  "allLanguages": "All Languages"
 }

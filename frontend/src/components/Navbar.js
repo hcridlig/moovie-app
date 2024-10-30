@@ -28,7 +28,7 @@ function Navbar() {
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link to="/" className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-indigo-600'}`}>
-            MovieFlix
+            CinéScope
           </Link>
         </div>
 
@@ -104,7 +104,7 @@ function Navbar() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/films" className="block px-4 py-2 hover:bg-indigo-100 transition" onClick={() => setMenuOpen(false)}>
+                  <Link to="/moviespage" className="block px-4 py-2 hover:bg-indigo-100 transition" onClick={() => setMenuOpen(false)}>
                     {t('movies')}
                   </Link>
                 </li>
