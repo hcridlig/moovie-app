@@ -8,7 +8,7 @@ function Footer() {
   const { theme } = useContext(SettingsContext);
 
   return (
-    <footer className={`shadow-inner mt-4 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-600'}`}>
+    <footer className={`shadow-inner mt-4 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600'}`}>
       <div className="container mx-auto text-center p-4">
         <p>{t('footerText')}</p>
       </div>
