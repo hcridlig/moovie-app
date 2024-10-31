@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
 const imageUrl = 'https://image.tmdb.org/t/p/w500'; // Base URL pour les affiches
+const apiKey = "4edc74f5d6c3356f7a70a0ff694ecf1b";
 
 export const getSeriesById = async (id) => {
   const response = await axios.get(`${apiUrl}/series/${id}`);
@@ -117,27 +118,65 @@ export const getStreamingPlatforms = async (id, countryCode) => {
   }
 };
 
-// Récupère les genres disponibles
+// Récupération des genres de films
 export const getGenres = async () => {
-  const response = await axios.get('/api/genres');
+  const response = await axios.get(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}&language=en-US`);
   return response.data.genres;
 };
 
-// Récupère les langues disponibles
+// Récupération des langues disponibles
 export const getLanguages = async () => {
-  const response = await axios.get('/api/languages');
-  return response.data.languages;
+  const response = await axios.get(`https://api.themoviedb.org/3/configuration/languages?api_key=${apiKey}`);
+  return response.data;
 };
 
-// Récupère les films en fonction des filtres
-export const getFilteredMovies = async (filters) => {
-  const response = await axios.get('/api/movies', { params: filters });
+// Récupération des plateformes de streaming
+export const getPlatforms = async (countryCode = 'US') => {
+  const response = await axios.get(`https://api.themoviedb.org/3/watch/providers/movie?api_key=${apiKey}&language=en-US&watch_region=${countryCode}`);
   return response.data.results;
 };
 
-// Récupère les plateformes disponibles
-export const getPlatforms = async () => {
-  const response = await axios.get('/api/platforms');
-  return response.data.platforms;
+// Récupération des films avec filtres dynamiques
+export const getFilteredMovies = async (filters) => {
+  const {
+    genre,
+    language,
+    platform,
+    minRating,
+    releaseYear,
+    minDuration,
+    maxDuration,
+    page
+  } = filters;
+
+  const params = {
+    api_key: apiKey,
+    language: 'en-US',
+    watch_region: 'US',
+    page: page || 1,
+  };
+
+  if (genre) params.with_genres = genre;
+  if (language) params.with_original_language = language;
+  if (platform) params.with_watch_providers = platform;
+  if (minRating) params.vote_average_gte = minRating;
+  if (releaseYear) params.primary_release_year = releaseYear;
+  if (minDuration) params.with_runtime_gte = minDuration;
+  if (maxDuration) params.with_runtime_lte = maxDuration;
+
+  try {
+    const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });
+    const movies = response.data.results.map(movie => ({
+      ...movie,
+      image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg',
+    }));
+    return {
+      results: movies,
+      total_pages: response.data.total_pages,
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des films filtrés :", error);
+    throw error;
+  }
 };
 // Autres fonctions API...

@@ -7,7 +7,7 @@ import { SettingsContext } from '../contexts/SettingsContext';
 
 function MoviesPage() {
   const { t } = useTranslation();
-  const { theme } = useContext(SettingsContext); // Intégration du thème
+  const { theme } = useContext(SettingsContext);
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
   const [languages, setLanguages] = useState([]);
@@ -18,23 +18,29 @@ function MoviesPage() {
     platform: '',
     minRating: 0,
     releaseYear: '',
-    minDuration: '', // Nouveau champ pour la durée minimale
-    maxDuration: ''  // Nouveau champ pour la durée maximale
+    minDuration: '',
+    maxDuration: ''
   });
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Chargement initial des genres, langues et plateformes
   useEffect(() => {
-    // Récupère les genres, langues et plateformes disponibles pour le filtrage
     const fetchData = async () => {
       try {
-        const [genreData, languageData, platformData] = await Promise.all([
+        const [genreData, languageData] = await Promise.all([
           getGenres(),
           getLanguages(),
-          getPlatforms()
         ]);
         setGenres(genreData);
         setLanguages(languageData);
-        setPlatforms(platformData);
+
+        // Charge les plateformes de base sans filtre de langue
+        const defaultPlatforms = await getPlatforms();
+        setPlatforms(defaultPlatforms);
+
+        handleSearch(); // Recherche initiale des films
       } catch (error) {
         console.error('Erreur lors de la récupération des genres, langues ou plateformes:', error);
       }
@@ -42,19 +48,42 @@ function MoviesPage() {
     fetchData();
   }, []);
 
+  // Récupération des plateformes en fonction de la langue
+  const fetchPlatformsByLanguage = async (language) => {
+    const countryCodeMap = {
+      fr: 'FR',
+      en: 'US',
+      // Ajoutez d'autres langues et pays si nécessaire
+    };
+    const countryCode = countryCodeMap[language] || 'US';
+
+    try {
+      const platformsByLanguage = await getPlatforms(countryCode);
+      setPlatforms(platformsByLanguage);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des plateformes:', error);
+    }
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prevFilters) => ({
       ...prevFilters,
       [name]: value
     }));
+
+    // Mettre à jour les plateformes si la langue change
+    if (name === 'language') {
+      fetchPlatformsByLanguage(value);
+    }
   };
 
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const filteredMovies = await getFilteredMovies(filters);
-      setMovies(filteredMovies);
+      const { results, total_pages } = await getFilteredMovies({ ...filters, page });
+      setMovies(results);
+      setTotalPages(total_pages);
     } catch (error) {
       console.error('Erreur lors de la récupération des films filtrés:', error);
     } finally {
@@ -62,12 +91,43 @@ function MoviesPage() {
     }
   };
 
+  // Fonction pour réinitialiser les filtres
+  const handleResetFilters = () => {
+    setFilters({
+      genre: '',
+      language: '',
+      platform: '',
+      minRating: 0,
+      releaseYear: '',
+      minDuration: '',
+      maxDuration: ''
+    });
+    setPage(1); // Réinitialiser également la page à 1
+    handleSearch(); // Relancer la recherche avec les filtres réinitialisés
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage((prevPage) => prevPage + 1);
+      handleSearch(); // Charger la page suivante lors du clic sur "Next"
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage((prevPage) => prevPage - 1);
+      handleSearch(); // Charger la page précédente lors du clic sur "Previous"
+    }
+  };
+
   return (
     <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-4">{t('movieFilters')}</h1>
+
       <div className="flex">
         {/* Barre latérale de filtres */}
-        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} max-h-[75vh] overflow-y-auto`}>
+          
           {/* Genre */}
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('genre')}</label>
@@ -180,6 +240,14 @@ function MoviesPage() {
           >
             {t('search')}
           </button>
+
+          {/* Bouton de réinitialisation */}
+          <button
+            onClick={handleResetFilters}
+            className="mt-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 w-full"
+          >
+            {t('resetFilters')}
+          </button>
         </div>
 
         {/* Liste des films */}
@@ -190,6 +258,25 @@ function MoviesPage() {
               ))
             : movies.map((movie) => <MovieCard key={movie.id} item={movie} />)}
         </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-between my-4">
+        <button
+          onClick={handlePrevPage}
+          disabled={page === 1}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {t('previous')}
+        </button>
+        <span className="text-lg">{t('page')} {page} / {totalPages}</span>
+        <button
+          onClick={handleNextPage}
+          disabled={page === totalPages}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {t('next')}
+        </button>
       </div>
     </div>
   );
