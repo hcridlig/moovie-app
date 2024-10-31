@@ -66,5 +66,6 @@
   "minRating": "Note minimale",
   "releaseYear": "Année de sortie",
   "allGenres": "Tous les genres",
-  "allLanguages": "Toutes les langues"
+  "allLanguages": "Toutes les langues",
+  "resetFilters": "Réinitialiser"
 }
