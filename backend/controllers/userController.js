@@ -1,10 +1,14 @@
 // backend/controllers/userController.js
 const { User } = require('../models/User');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const userController = {
   getAllUsers: async (req, res) => {
     try {
-      const users = await User.findAll();
+      const users = await User.findAll({
+        attributes: { exclude: ['password'] } // Exclude password from the result
+      });
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs.' });
@@ -12,22 +16,51 @@ const userController = {
   },
 
   getProfile: async (req, res) => {
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authorization token is missing.' });
+    }
+
     try {
-      const user = await User.findById(req.user.id).select('-password');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findOne({
+        where: { user_id: decoded.id },
+        attributes: { exclude: ['password'] } // Exclude password from the result
+      });
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+      }
+
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération du profil.' });
     }
   },
 
+
   updateProfile: async (req, res) => {
     try {
-      const updatedUser = await User.findByIdAndUpdate(req.user.id, req.body, { new: true }).select('-password');
-      res.json(updatedUser);
+      const [affectedRows, [updatedUser]] = await User.update(req.body, {
+        where: { user_id: req.user.id },
+        returning: true, // returns the updated user
+        individualHooks: true // runs any hooks if defined in your model
+      });
+
+      if (affectedRows === 0) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+      }
+
+      const userWithoutPassword = updatedUser.get({ plain: true });
+      delete userWithoutPassword.password; // remove password from the response
+      res.json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la mise à jour du profil.' });
     }
   },
+
 
   addWatchedItem: async (req, res) => {
     try {
@@ -57,9 +90,13 @@ const userController = {
 
   changePassword: async (req, res) => {
     const { currentPassword, newPassword } = req.body;
+    
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     try {
-      const user = await User.findById(req.user.id);
+      const user = await User.findOne({ where: { user_id: decoded.id } });
       const isMatch = await bcrypt.compare(currentPassword, user.password);
 
       if (!isMatch) {
