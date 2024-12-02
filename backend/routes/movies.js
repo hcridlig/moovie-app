@@ -6,7 +6,7 @@ const moviesController = require('../controllers/moviesController');
 // Récupérer les films tendances
 router.get('/', moviesController.getTrendingMovies);
 
-
+router.get('/recommended/:movieId', moviesController.getRecommendedMovies);
 
 
 module.exports = router;
