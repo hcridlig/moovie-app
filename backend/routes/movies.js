@@ -1,10 +1,10 @@
 // backend/routes/users.js
 const express = require('express');
 const router = express.Router();
-const mooviesController = require('../controllers/mooviesController');
+const moviesController = require('../controllers/moviesController');
 
 // Récupérer les films tendances
-router.get('/', mooviesController.getTrendingMoovies);
+router.get('/', moviesController.getTrendingMovies);
 
 
 
