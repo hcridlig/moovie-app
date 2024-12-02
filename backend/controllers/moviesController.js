@@ -1,8 +1,8 @@
 // backend/controllers/mooviesController.js
 const axios = require('axios');
 
-const mooviesController = {
-    getTrendingMoovies: async (req, res) => {
+const moviesController = {
+    getTrendingMovies: async (req, res) => {
         const url = `https://api.themoviedb.org/3/trending/movie/week?api_key=${process.env.API_KEY_TMDB}`;
         try {
             const response = await axios.get(url);
@@ -16,4 +16,4 @@ const mooviesController = {
       },
 };
 
-module.exports = mooviesController;
+module.exports = moviesController;
