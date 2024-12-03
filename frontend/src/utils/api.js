@@ -71,7 +71,7 @@ export const updatePassword = async (passwordData) => {
 
 export const getTopMovies = async () => {
   try {
-    const response = await axios.get(`${apiUrl}/moovies`);
+    const response = await axios.get(`${apiUrl}/movies`);
     const movies = response.data.map(movie => ({
       ...movie,
       image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg', // Ajouter l'URL de l'affiche complète

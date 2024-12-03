@@ -4,11 +4,10 @@ const { Sequelize } = require('sequelize');
 // Load environment variables from .env file
 dotenv.config();
 
-// Créer une instance Sequelize avec les informations de configuration
 const sequelize = new Sequelize(
-  process.env.PGDATABASE,
-  process.env.PGUSERNAME,
-  process.env.PGPASSWORD,
+  process.env.PGDATABASE,  // Database name
+  process.env.PGUSERNAME, // Username
+  process.env.PGPASSWORD, // Password
   {
     host: process.env.PGHOST,
     dialect: 'postgres',
@@ -16,16 +15,10 @@ const sequelize = new Sequelize(
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false, // Utile pour le développement local
+        rejectUnauthorized: false, // Needed for local development with SSL
       },
     },
   }
 );
-
-// Tester la connexion
-sequelize
-  .authenticate()
-  .then(() => console.log('Connexion réussie à PostgreSQL'))
-  .catch(err => console.error('Impossible de se connecter à PostgreSQL', err));
 
 module.exports = sequelize;

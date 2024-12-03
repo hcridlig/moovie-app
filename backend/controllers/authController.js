@@ -1,5 +1,5 @@
 // backend/controllers/authController.js
-const { User } = require('../models/User');
+const { User } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -55,6 +55,7 @@ const authController = {
 
       res.json({ token, user: { id: user.user_id, username: user.username, email: user.email } });
     } catch (error) {
+      console.error(error);  // Log the error for better
       res.status(500).json({ message: 'Erreur lors de la connexion.' });
     }
   },
