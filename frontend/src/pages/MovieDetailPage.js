@@ -91,26 +91,32 @@ function MovieDetailPage() {
       <div className="relative">
         <button
           onClick={scrollLeft}
-          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-gray-300 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2 z-10"
+          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white
+          ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &lt;
         </button>
         <div ref={scrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
           {movie.credits?.cast.slice(0, 12).map((actor) => (
-            <div key={actor.id} className="flex-none w-36 text-center p-4 bg-white rounded-lg shadow-md">
+            <div 
+              key={actor.id} 
+              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md
+              ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+            >
               <img 
                 src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
                 alt={actor.name} 
                 className="w-full h-36 object-cover rounded-lg mb-2" 
               />
               <p className="font-semibold text-sm truncate">{actor.name}</p>
-              <p className="text-xs text-gray-600 truncate">{actor.character}</p>
+              <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{actor.character}</p>
             </div>
           ))}
         </div>
         <button
           onClick={scrollRight}
-          className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-gray-300 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2 z-10"
+          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white
+          ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &gt;
         </button>

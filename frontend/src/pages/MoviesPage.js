@@ -126,7 +126,7 @@ function MoviesPage() {
 
       <div className="flex">
         {/* Barre latérale de filtres */}
-        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} max-h-[75vh] overflow-y-auto`}>
+        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} max-h-[73vh] overflow-y-auto`}>
           
           {/* Genre */}
           <div className="mb-4">
