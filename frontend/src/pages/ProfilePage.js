@@ -96,7 +96,7 @@ function ProfilePage() {
         <div className="mb-4">
           <label className="block font-semibold">{t('username')}</label>
           {isLoading ? (
-            <ProfileSkeleton theme={theme} width="75%" height="1.5rem" />
+            <ProfileSkeleton theme={theme} width="75%" height="1rem" />
           ) : (
             <>
               <p className="mb-2">{user.username}</p>
@@ -115,7 +115,7 @@ function ProfilePage() {
         <div className="mb-4">
           <label className="block font-semibold">{t('emailAddress')}</label>
           {isLoading ? (
-            <ProfileSkeleton theme={theme} width="75%" height="1.5rem" />
+            <ProfileSkeleton theme={theme} width="75%" height="1rem" />
           ) : (
             <>
               <p className="mb-2">{user.email}</p>
@@ -134,7 +134,7 @@ function ProfilePage() {
         <div className="mb-4">
           <label className="block font-semibold">{t('accountCreationDate')}</label>
           {isLoading ? (
-            <ProfileSkeleton theme={theme} width="50%" height="1.5rem" />
+            <ProfileSkeleton theme={theme} width="50%" height="1rem" />
           ) : (
             <p>{new Date(user.created_at).toLocaleDateString()}</p>
           )}
