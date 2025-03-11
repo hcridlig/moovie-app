@@ -179,4 +179,10 @@ export const getFilteredMovies = async (filters) => {
     throw error;
   }
 };
+
+// Exemple de fonction pour filtrer les séries
+export const getFilteredSeries = async (params) => {
+  const response = await axios.get('/api/series', { params });
+  return response.data;
+};
 // Autres fonctions API...

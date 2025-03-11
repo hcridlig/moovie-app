@@ -10,12 +10,13 @@ import MovieDetailPage from './pages/MovieDetailPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
-import Header from './components/Header';
+//import Header from './components/Header';
 import WatchedPage from './pages/WatchedPage';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
 import SettingsPage from './pages/SettingsPage';
 import MoviesPage from './pages/MoviesPage';
+import SeriesPage from './pages/SeriesPage';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/movie/:id" element={<MovieDetailPage />} />
                 <Route path="/series/:id" element={<SeriesDetailPage />} />
+                <Route exact path="/seriespage" component={<SeriesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/watched" element={<WatchedPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
