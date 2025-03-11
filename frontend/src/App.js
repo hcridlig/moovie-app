@@ -32,7 +32,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/movie/:id" element={<MovieDetailPage />} />
                 <Route path="/series/:id" element={<SeriesDetailPage />} />
-                <Route exact path="/seriespage" component={<SeriesPage />} />
+                <Route path="/seriespage" component={<SeriesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/watched" element={<WatchedPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
