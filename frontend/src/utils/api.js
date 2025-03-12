@@ -180,9 +180,18 @@ export const getFilteredMovies = async (filters) => {
   }
 };
 
-// Exemple de fonction pour filtrer les séries
-export const getFilteredSeries = async (params) => {
-  const response = await axios.get('/api/series', { params });
-  return response.data;
+export const getFilteredSeries = async (filters) => {
+  try {
+    // Ici, on suppose que le backend monte le routeur series sous /api/series
+    const response = await axios.get(`${apiUrl}/api/series`, { params: filters });
+    // Votre backend retourne { series: [...] } et pas de pagination,
+    // donc on adapte la réponse en conséquence.
+    return {
+      results: response.data.series,
+      total_pages: 1, // Modifiez si le backend implémente la pagination
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 // Autres fonctions API...
