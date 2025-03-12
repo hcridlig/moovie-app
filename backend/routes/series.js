@@ -3,8 +3,8 @@ const express = require('express');
 const router = express.Router();
 const seriesController = require('../controllers/seriesController');
 
-// Récupérer la liste des séries avec filtres (similaire à /api/movies/search)
-router.get('/', seriesController.getSeries);
+// Récupérer la liste des séries tendances
+router.get('/', seriesController.getTrendingSeries);
 
 // Récupérer les détails d'une série en fonction de son ID
 router.get('/:id', seriesController.getSeriesDetail);

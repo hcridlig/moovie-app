@@ -14,10 +14,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const movieRoutes = require('./routes/movies');
+const seriesRoutes = require('./routes/series');
 
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/movies', movieRoutes);
+app.use('/series', seriesRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
