@@ -17,6 +17,7 @@ import Navbar from './components/Navbar';
 import SettingsPage from './pages/SettingsPage';
 import MoviesPage from './pages/MoviesPage';
 import SeriesPage from './pages/SeriesPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 
 function App() {
   return (
@@ -32,11 +33,12 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/movie/:id" element={<MovieDetailPage />} />
                 <Route path="/series/:id" element={<SeriesDetailPage />} />
-                <Route path="/seriespage" component={<SeriesPage />} />
+                <Route path="/seriespage" element={<SeriesPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/watched" element={<WatchedPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/moviespage" element={<MoviesPage />} />
+                <Route path="/search" element={<SearchResultsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>

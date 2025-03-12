@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Node.js app to Azure Web App - cine-scope-api
 
 on:
@@ -9,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +29,9 @@ jobs:
           npm install
 
       - name: Zip artifact for deployment
-        run: |
-          cd backend
-          zip -r ../release.zip .
+        run: | 
+           cd backend
+           zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -41,7 +46,8 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # This is required for requesting the JWT
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
@@ -55,14 +61,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_48C7FF1425A84C4D8D51922E49274591 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9DB7F79F0EEA454FB26FA688E1D639D2 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3669A8B1F89B4C8787758E81F15CE12E }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4108DD1F1B2B4D7182C5F22E7861715E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6FCC93BB486E48309BF236378C21C695 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DB7260952F5448DBA28E5ABAACBEC821 }}
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'cine-scope-api'
           slot-name: 'Production'
           package: .
+          

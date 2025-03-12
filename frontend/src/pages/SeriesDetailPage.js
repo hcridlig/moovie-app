@@ -10,7 +10,7 @@ const SerieDetailPage = () => {
   useEffect(() => {
     const fetchSerieDetail = async () => {
       try {
-        const response = await axios.get(`/api/series/${id}`);
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/series/${id}`);
         setSerie(response.data.serie);
       } catch (error) {
         console.error("Erreur lors de la récupération des détails de la série :", error);
@@ -31,7 +31,7 @@ const SerieDetailPage = () => {
       <p><strong>Genre :</strong> {serie.genre}</p>
       <p><strong>Plateforme :</strong> {serie.platform}</p>
       <p><strong>Date de sortie :</strong> {serie.releaseDate}</p>
-      {/* Ajoutez ici d'autres informations spécifiques aux séries (nombre de saisons, casting, etc.) */}
+      {/* Ajoutez ici d'autres informations spécifiques aux séries */}
     </div>
   );
 };
