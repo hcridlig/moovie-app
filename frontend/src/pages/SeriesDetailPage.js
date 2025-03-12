@@ -1,39 +1,36 @@
-// src/pages/SerieDetailPage.js
+// src/pages/SeriesDetailPage.js
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { getSeriesById } from '../utils/api'; // Fonction pour récupérer la série via l'API
 
-const SerieDetailPage = () => {
+function SeriesDetailPage() {
   const { id } = useParams();
-  const [serie, setSerie] = useState(null);
+  const [series, setSeries] = useState(null);
 
   useEffect(() => {
-    const fetchSerieDetail = async () => {
-      try {
-        const response = await axios.get(`/api/series/${id}`);
-        setSerie(response.data.serie);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des détails de la série :", error);
-      }
-    };
-    fetchSerieDetail();
+    // Récupérer les détails de la série depuis l'API
+    getSeriesById(id).then((data) => setSeries(data));
   }, [id]);
 
-  if (!serie) {
-    return <p>Chargement...</p>;
+  if (!series) {
+    return <p className="text-center mt-8">Chargement...</p>;
   }
 
   return (
-    <div className="serie-detail-page">
-      <h2>{serie.title}</h2>
-      <img src={serie.posterUrl} alt={serie.title} className="serie-detail-poster" />
-      <p>{serie.synopsis}</p>
-      <p><strong>Genre :</strong> {serie.genre}</p>
-      <p><strong>Plateforme :</strong> {serie.platform}</p>
-      <p><strong>Date de sortie :</strong> {serie.releaseDate}</p>
-      {/* Ajoutez ici d'autres informations spécifiques aux séries (nombre de saisons, casting, etc.) */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row">
+        <img src={series.image} alt={series.title} className="w-full md:w-1/3 rounded-lg shadow-lg" />
+        <div className="md:ml-8 mt-4 md:mt-0">
+          <h1 className="text-3xl font-bold mb-2">{series.title}</h1>
+          <p className="text-gray-600 mb-4">{series.genre} | {series.seasons} saisons</p>
+          <p className="mb-6">{series.synopsis}</p>
+          <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+            Regarder sur {series.platform}
+          </button>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
-export default SerieDetailPage;
+export default SeriesDetailPage;

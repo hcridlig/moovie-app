@@ -109,7 +109,7 @@ function Navbar() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/seriespage" className="block px-4 py-2 hover:bg-indigo-100 transition" onClick={() => setMenuOpen(false)}>
+                  <Link to="/series" className="block px-4 py-2 hover:bg-indigo-100 transition" onClick={() => setMenuOpen(false)}>
                     {t('series')}
                   </Link>
                 </li>

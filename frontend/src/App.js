@@ -10,13 +10,12 @@ import MovieDetailPage from './pages/MovieDetailPage';
 import SeriesDetailPage from './pages/SeriesDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
-//import Header from './components/Header';
+import Header from './components/Header';
 import WatchedPage from './pages/WatchedPage';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
 import SettingsPage from './pages/SettingsPage';
 import MoviesPage from './pages/MoviesPage';
-import SeriesPage from './pages/SeriesPage';
 
 function App() {
   return (
