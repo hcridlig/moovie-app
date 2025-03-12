@@ -1,5 +1,4 @@
-// MovieCard.js
-
+// src/components/MovieCard.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,12 +22,26 @@ function MovieCard({ item, index }) {
       )}
 
       <img
-        src={item.image ? item.image : 'https://media.istockphoto.com/id/1642381175/fr/vectoriel/cin%C3%A9ma.jpg?s=612x612&w=0&k=20&c=obVOGQkJifaPk9lSf1-YrrmNQAQnHbKSCQ1JvnpDO00='}
+        src={
+          item.image
+            ? item.image
+            : 'https://media.istockphoto.com/id/1642381175/fr/vectoriel/cin%C3%A9ma.jpg?s=612x612&w=0&k=20&c=obVOGQkJifaPk9lSf1-YrrmNQAQnHbKSCQ1JvnpDO00='
+        }
         alt={item.title}
         className="w-full h-64 object-cover"
       />
       <div className="p-2">
-        <h3 className="text-lg font-bold mb-1 dark:text-white text-center">{item.title}</h3>
+        {/* Limite à 2 lignes, puis coupe avec "..." */}
+        <h3
+          className="text-lg font-bold mb-1 dark:text-white text-center overflow-hidden text-ellipsis whitespace-normal"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {item.title}
+        </h3>
       </div>
     </div>
   );

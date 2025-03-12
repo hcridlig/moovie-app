@@ -5,6 +5,29 @@ const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
 const imageUrl = 'https://image.tmdb.org/t/p/w500'; // Base URL pour les affiches
 const apiKey = "4edc74f5d6c3356f7a70a0ff694ecf1b";
 
+export const getSearchedMovies = async (query) => {
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/search/movie`, {
+      params: {
+        api_key: apiKey,
+        query,
+        language: 'en-US'
+      }
+    });
+    const movies = response.data.results.map(movie => ({
+      ...movie,
+      image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg'
+    }));
+    return {
+      results: movies,
+      total_pages: response.data.total_pages,
+    };
+  } catch (error) {
+    console.error("Erreur lors de la recherche de films:", error);
+    throw error;
+  }
+};
+
 export const getSeriesById = async (id) => {
   const response = await axios.get(`${apiUrl}/series/${id}`);
   return response.data;
@@ -158,11 +181,14 @@ export const getFilteredMovies = async (filters) => {
 
   if (genre) params.with_genres = genre;
   if (language) params.with_original_language = language;
-  if (platform) params.with_watch_providers = platform;
-  if (minRating) params.vote_average_gte = minRating;
+  if (platform) {
+    params.with_watch_providers = platform;
+    params.with_watch_monetization_types = 'flatrate'; // pour ne récupérer que les offres de streaming
+  }
+  if (minRating) params["vote_average.gte"] = minRating;
   if (releaseYear) params.primary_release_year = releaseYear;
-  if (minDuration) params.with_runtime_gte = minDuration;
-  if (maxDuration) params.with_runtime_lte = maxDuration;
+  if (minDuration) params["with_runtime.gte"] = minDuration;
+  if (maxDuration) params["with_runtime.lte"] = maxDuration;
 
   try {
     const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { getMovieById, getStreamingPlatforms } from '../utils/api';
 import { FaStar } from 'react-icons/fa';
-import { SettingsContext } from '../contexts/SettingsContext'; // Contexte pour le thème
+import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 
 function MovieDetailPage() {
@@ -14,13 +14,54 @@ function MovieDetailPage() {
   const [platforms, setPlatforms] = useState(null);
   const scrollRef = useRef(null);
 
+  // Mapping des plateformes avec une fonction générant l'URL de deep link (ici une recherche) pour le film
+  const providerUrls = {
+    Netflix: (movie) =>
+      `https://www.netflix.com/search?q=${encodeURIComponent(movie.title)}`,
+    'Amazon Prime Video': (movie) =>
+      `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(movie.title)}`,
+    Hulu: (movie) =>
+      `https://www.hulu.com/search?q=${encodeURIComponent(movie.title)}`,
+    'Disney Plus': (movie) =>
+      `https://www.disneyplus.com/search?q=${encodeURIComponent(movie.title)}`,
+    'HBO Max': (movie) =>
+      `https://www.hbomax.com/search?q=${encodeURIComponent(movie.title)}`,
+    // Vous pouvez ajouter d'autres plateformes ici
+  };
+  
+  // Mapping des URL de connexion de chaque plateforme
+  const providerLoginUrls = {
+    Netflix: 'https://www.netflix.com/login',
+    'Amazon Prime Video': 'https://www.primevideo.com/ap/signin',
+    Hulu: 'https://secure.hulu.com/account',
+    'Disney Plus': 'https://www.disneyplus.com/login',
+    'HBO Max': 'https://www.hbomax.com/login',
+    // Ajoutez d'autres URL de connexion si nécessaire
+  };
+
+  // Gestion du clic sur une icône de plateforme
+  const handleProviderClick = (provider, event) => {
+    event.preventDefault();
+    // Demande de confirmation : l'utilisateur est-il connecté à cette plateforme ?
+    const isConnected = window.confirm(
+      `Êtes-vous connecté à ${provider.provider_name} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.`
+    );
+    if (isConnected) {
+      // Redirection vers le deep link (ici la recherche du film)
+      window.open(providerUrls[provider.provider_name](movie), "_blank");
+    } else {
+      // Redirection vers la page de connexion de la plateforme
+      window.open(providerLoginUrls[provider.provider_name] || providerUrls[provider.provider_name](movie), "_blank");
+    }
+  };
+
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
         const movieData = await getMovieById(id);
         setMovie(movieData);
 
-        const platformData = await getStreamingPlatforms(id, 'FR'); // Récupération des plateformes pour la France
+        const platformData = await getStreamingPlatforms(id, 'FR'); // Récupération pour la France
         setPlatforms(platformData);
       } catch (error) {
         console.error("Erreur lors de la récupération des détails du film :", error);
@@ -48,7 +89,7 @@ function MovieDetailPage() {
         <div className="md:flex-1 space-y-4">
           <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
 
-          {/* Présentation de la note dans une étoile dorée */}
+          {/* Présentation de la note */}
           <div className="flex items-center space-x-2 mb-4">
             <div className="relative flex items-center justify-center text-white font-bold">
               <FaStar className="text-yellow-500 w-10 h-10" />
@@ -72,13 +113,19 @@ function MovieDetailPage() {
               <h3 className="text-lg font-semibold mb-2">{t('availableOn')}</h3>
               <div className="flex space-x-4">
                 {platforms.flatrate && platforms.flatrate.map((provider) => (
-                  <img
+                  <a
                     key={provider.provider_id}
-                    src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
-                    alt={provider.provider_name}
-                    title={provider.provider_name}
-                    className="h-12 w-auto rounded-md shadow-md"
-                  />
+                    href="#"
+                    onClick={(e) => handleProviderClick(provider, e)}
+                    className="block"
+                  >
+                    <img
+                      src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                      alt={provider.provider_name}
+                      title={provider.provider_name}
+                      className="h-12 w-auto rounded-md shadow-md"
+                    />
+                  </a>
                 ))}
               </div>
             </div>
@@ -86,13 +133,12 @@ function MovieDetailPage() {
         </div>
       </div>
 
-      {/* Casting avec défilement horizontal */}
+      {/* Casting en défilement horizontal */}
       <h2 className="text-3xl font-semibold text-center mt-8 mb-4">{t('mainCast')}</h2>
       <div className="relative">
         <button
           onClick={scrollLeft}
-          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white
-          ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
+          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &lt;
         </button>
@@ -100,8 +146,7 @@ function MovieDetailPage() {
           {movie.credits?.cast.slice(0, 12).map((actor) => (
             <div 
               key={actor.id} 
-              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md
-              ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
             >
               <img 
                 src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
@@ -115,8 +160,7 @@ function MovieDetailPage() {
         </div>
         <button
           onClick={scrollRight}
-          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white
-          ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
+          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &gt;
         </button>

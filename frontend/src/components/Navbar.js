@@ -1,20 +1,59 @@
 // src/components/Navbar.js
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
+import { getSearchedMovies } from '../utils/api';
 
 function Navbar() {
   const { t } = useTranslation();
   const { theme } = useContext(SettingsContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   const { isAuthenticated, username, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Réinitialiser la barre de recherche et les suggestions lors d'un changement de route
+  useEffect(() => {
+    setSearchQuery('');
+    setSuggestions([]);
+  }, [location.pathname]);
+
+  // Utilisation d'un debounce pour récupérer les suggestions
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim() !== '') {
+        getSearchedMovies(searchQuery)
+          .then(data => {
+            // On limite par exemple à 5 suggestions
+            setSuggestions(data.results.slice(0, 5));
+          })
+          .catch(error => {
+            console.error("Erreur lors de la récupération des suggestions :", error);
+          });
+      } else {
+        setSuggestions([]);
+      }
+    }, 300); // Délai de 300 ms
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSearch = () => {
-    console.log('Rechercher :', searchQuery);
+    if (searchQuery.trim()) {
+      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
+      // Réinitialise la barre de recherche et les suggestions après la recherche
+      setSearchQuery('');
+      setSuggestions([]);
+    }
+  };
+
+  const handleSuggestionClick = (movie) => {
+    navigate(`/movie/${movie.id}`);
+    setSearchQuery('');
+    setSuggestions([]);
   };
 
   const handleLogout = () => {
@@ -55,6 +94,20 @@ function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </button>
+          {/* Suggestions */}
+          {suggestions.length > 0 && (
+            <div className={`absolute left-0 right-0 mt-1 z-50 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded shadow-lg`}>
+              {suggestions.map(movie => (
+                <div
+                  key={movie.id}
+                  onClick={() => handleSuggestionClick(movie)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                >
+                  {movie.title}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Liens de navigation */}

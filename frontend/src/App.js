@@ -17,6 +17,7 @@ import Navbar from './components/Navbar';
 import SettingsPage from './pages/SettingsPage';
 import MoviesPage from './pages/MoviesPage';
 import SeriesPage from './pages/SeriesPage';
+import SearchResultsPage from './pages/SearchResultsPage';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/watched" element={<WatchedPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/moviespage" element={<MoviesPage />} />
+                <Route path="/search" element={<SearchResultsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>

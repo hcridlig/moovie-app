@@ -138,7 +138,7 @@ function SeriesPage() {
         <div
           className={`w-1/4 p-6 rounded-lg shadow-md ${
             theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-          } max-h-[73vh] overflow-y-auto`}
+          } max-h-[66vh] overflow-y-auto`}
         >
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('genre')}</label>
