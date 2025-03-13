@@ -106,6 +106,22 @@ export const getTopMovies = async () => {
   }
 };
 
+export const getTopSeries = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/series`);
+    const series = response.data.map(serie => ({
+      ...serie,
+      posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
+      title: serie.name, // Pour que le composant SerieCard affiche correctement le titre
+    }));
+    return series;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des séries :", error);
+    throw error;
+  }
+};
+
+
 export const getMovieById = async (id) => {
   try {
     const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=4edc74f5d6c3356f7a70a0ff694ecf1b&language=fr-fr&append_to_response=credits`);
@@ -115,6 +131,24 @@ export const getMovieById = async (id) => {
     };
   } catch (error) {
     console.error("Erreur lors de la récupération des détails du film :", error);
+    throw error;
+  }
+};
+
+export const getSerieById = async (id) => {
+  try {
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-fr&append_to_response=credits`
+    );
+    return {
+      ...response.data,
+      posterUrl: response.data.poster_path
+        ? `${imageUrl}${response.data.poster_path}`
+        : '/path/to/default-image.jpg',
+      title: response.data.name, // pour harmoniser avec SerieCard
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des détails de la série :", error);
     throw error;
   }
 };
@@ -208,13 +242,15 @@ export const getFilteredMovies = async (filters) => {
 
 export const getFilteredSeries = async (filters) => {
   try {
-    // Ici, on suppose que le backend monte le routeur series sous /api/series
-    const response = await axios.get(`${apiUrl}/api/series`, { params: filters });
-    // Votre backend retourne { series: [...] } et pas de pagination,
-    // donc on adapte la réponse en conséquence.
+    const response = await axios.get(`${apiUrl}/series`, { params: filters });
+    const series = response.data.map(serie => ({
+      ...serie,
+      posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
+      title: serie.name, // Pour que le composant SerieCard puisse afficher le titre
+    }));
     return {
-      results: response.data.series,
-      total_pages: 1, // Modifiez si le backend implémente la pagination
+      results: series,
+      total_pages: 1, // Adapté pour une API sans pagination
     };
   } catch (error) {
     throw error;

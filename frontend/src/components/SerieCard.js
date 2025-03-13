@@ -1,14 +1,44 @@
-// src/components/SerieCard.js
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-function SerieCard({ serie }) {
+function SerieCard({ serie, index }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/series/${serie.id}`);
+  };
+
   return (
-    <div className="serie-card">
-      <Link to={`/series/${serie.id}`}>
-        <img src={serie.posterUrl} alt={serie.title} className="serie-poster" />
-        <h3 className="serie-title">{serie.title}</h3>
-      </Link>
+    <div 
+      onClick={handleClick} 
+      className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden transform transition duration-300 hover:scale-105 w-48 mx-4 cursor-pointer relative"
+    >
+      {index && (
+        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs font-semibold rounded-full px-2 py-1">
+          {index}
+        </div>
+      )}
+      <img
+        src={
+          serie.posterUrl
+            ? serie.posterUrl
+            : 'https://media.istockphoto.com/id/1642381175/fr/vectoriel/cin%C3%A9ma.jpg?s=612x612&w=0&k=20&c=obVOGQkJifaPk9lSf1-YrrmNQAQnHbKSCQ1JvnpDO00='
+        }
+        alt={serie.title}
+        className="w-full h-64 object-cover"
+      />
+      <div className="p-2">
+        <h3
+          className="text-lg font-bold mb-1 dark:text-white text-center overflow-hidden text-ellipsis whitespace-normal"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {serie.title}
+        </h3>
+      </div>
     </div>
   );
 }

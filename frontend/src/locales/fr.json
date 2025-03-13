@@ -6,7 +6,7 @@
   "darkMode": "Sombre",
   "lightMode": "Clair",
   "systemMode": "Système",
-  "topMoviesOfTheWeek": "Top films de la semaine",
+  "topMoviesOfTheWeek": "Classement des Films de la semaine",
   "recommendationsForYou": "Recommandations pour vous",
   "login": "Connexion",
   "emailAddress": "Adresse Email",
@@ -67,5 +67,10 @@
   "releaseYear": "Année de sortie",
   "allGenres": "Tous les genres",
   "allLanguages": "Toutes les langues",
-  "resetFilters": "Réinitialiser"
+  "resetFilters": "Réinitialiser",
+  "episodes":"Épisodes",
+  "firstAirDate":"Première date de diffusion",
+  "topSeriesOfTheWeek":"Classement des Série de la semaine",
+  "numberOfSeasons":"Nombre de saisons",
+  "totalNumberOfEpisodes":"Nombre total d'épisodes"
 }
