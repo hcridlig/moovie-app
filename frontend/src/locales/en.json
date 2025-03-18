@@ -73,5 +73,12 @@
   "firstAirDate":"First release date",
   "topSeriesOfTheWeek":"Top Series of the week",
   "numberOfSeasons":"Number of seasons",
-  "totalNumberOfEpisodes":"Total number of episodes"
+  "totalNumberOfEpisodes":"Total number of episodes",
+  "france":"France",
+  "previous":"Previous",
+  "next":"Next",
+  "page":"Page",
+  "country":"Country",
+  "currentlyInTheaters":"Currently in theaters",
+  "notAvailableInCountry":"Not available in this country"
 }

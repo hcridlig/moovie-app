@@ -1,9 +1,88 @@
-// frontend/src/utils/api.js
+// src/utils/api.js
 import axios from 'axios';
 
 const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
 const imageUrl = 'https://image.tmdb.org/t/p/w500'; // Base URL pour les affiches
 const apiKey = "4edc74f5d6c3356f7a70a0ff694ecf1b";
+
+// Cache pour les résultats de getPlatforms par pays
+const providerCache = {};
+
+/**
+ * Récupère la liste des plateformes de streaming (watch providers) disponibles pour un pays donné,
+ * via l'endpoint /watch/providers/movie.
+ * Contrairement à /movie/{id}/watch/providers, cet endpoint renvoie un tableau "results".
+ */
+export const getPlatforms = async (countryCode = 'US') => {
+  countryCode = countryCode.toUpperCase();
+  const lang = countryCode === 'FR' ? 'fr-FR' : 'en-US';
+
+  // Mapping manuel des providers autorisés pour chaque pays.
+  // (Les IDs utilisés ici sont donnés à titre d'exemple ; adaptez-les à vos besoins.)
+  const allowedProviders = {
+    // Pour la France : on affiche Netflix, Amazon Prime Video, Disney Plus, Canal+ et Apple TV+.
+    'FR': [8, 119, 337, 97, 350, 381, 283, 138, 59, 147, 61, 234, 68, 188, 192, 190, 310, 324, 415, 196, 554, 559, 567, 573, 585, 588, 593, 613, 1754],
+
+    // Pour les États-Unis : on affiche Netflix, Amazon Prime Video, Hulu, Disney Plus, HBO Max, Apple TV+ et Peacock.
+    'US': [8, 9, 15, 337, 384, 350, 386, 3, 192, 188, 531, 1770, 538, 1796, 582, 583, 584, 207, 201, 2077, 289, 290, 291, 293, 294, 300, 343, 388, 433, 438, 439, 455, 457, 475, 503, 507, 508, 514, 529, 546, 551, 554, 569, 574, 633, 634, 635, 636, 688, 73, 87, 143, 185, 191, 196, 199, 202, 204, 228, 235, 239, 251, 257, 258, 260, 268, 278, 284, 295, 309, 322, 331, 332, 344, 361, 363, 368, 397, 417, 432, 437, 464, 486, 506, 515, 526, 542, 677, 1715, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1875, 1887, 1888, 1899, 1912, 222, 209, 123, 155, 157, 1853, 1854, 1855, 1875, 1889, 1899, 1967, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1867, 1875, 1887, 1888, 1889, 1899, 1912, 1967, 201, 207, 2077, 228, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1867, 1875, 1887, 1888, 1889, 1899, 1912, 1967, 201, 207, 2077, 228, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701],
+  };
+  
+
+  if (providerCache[countryCode]) {
+    return providerCache[countryCode];
+  }
+
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/watch/providers/movie`, {
+      params: {
+        api_key: apiKey,
+        language: lang,
+        watch_region: countryCode
+      }
+    });
+
+    let providersArray = response.data.results || [];
+    // Tri par display_priority pour un ordre cohérent
+    providersArray.sort((a, b) => (a.display_priority ?? 9999) - (b.display_priority ?? 9999));
+
+    // Filtrage manuel : ne conserver que les fournisseurs autorisés pour le pays sélectionné
+    if (allowedProviders[countryCode]) {
+      providersArray = providersArray.filter(provider =>
+        allowedProviders[countryCode].includes(provider.provider_id)
+      );
+    }
+
+    providerCache[countryCode] = providersArray;
+
+    return providersArray;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des plateformes:', error);
+    return [];
+  }
+};
+
+/**
+ * Récupère les plateformes de streaming pour un film donné (et un pays donné),
+ * via l'endpoint /movie/{id}/watch/providers. Celui-ci renvoie un objet "results" 
+ * dont chaque clé est un code pays (ex: "FR", "US"), et chaque sous-objet contient 
+ * des catégories: flatrate, free, buy, rent, etc.
+ */
+export const getStreamingPlatforms = async (id, countryCode = 'FR') => {
+  countryCode = countryCode.toUpperCase();
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/watch/providers`, {
+      params: { api_key: apiKey }
+    });
+    // response.data.results ressemble à { FR: { flatrate: [...], buy: [...], ... }, US: {...}, ...}
+    const result = response.data.results[countryCode];
+    // Ici, vous pouvez cumuler flatrate, free, buy, rent, etc. si vous le souhaitez
+    // Par défaut, on renvoie flatrate ou un tableau vide
+    return result ? (result.flatrate || []) : [];
+  } catch (error) {
+    console.error("Erreur lors de la récupération des plateformes de streaming :", error);
+    throw error;
+  }
+};
 
 export const getSearchedMovies = async (query) => {
   try {
@@ -28,76 +107,12 @@ export const getSearchedMovies = async (query) => {
   }
 };
 
-export const getSeriesById = async (id) => {
-  const response = await axios.get(`${apiUrl}/series/${id}`);
-  return response.data;
-};
-
-// Récupérer les informations du profil de l'utilisateur connecté
-export const getUserProfile = async () => {
-  const token = localStorage.getItem('token'); // Récupérer le token du localStorage
-  const response = await fetch(`${apiUrl}/users/me`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`, // Inclure le token dans l'en-tête d'autorisation
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Erreur lors de la récupération des informations utilisateur.');
-  }
-
-  const data = await response.json();
-  return data;
-};
-
-// Mettre à jour les informations de l'utilisateur connecté
-export const updateUserProfile = async (userData) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch(`${apiUrl}/users/me`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(userData),
-  });
-
-  if (!response.ok) {
-    throw new Error('Erreur lors de la mise à jour du profil.');
-  }
-
-  const data = await response.json();
-  return data;
-};
-
-// Mettre à jour le mot de passe de l'utilisateur
-export const updatePassword = async (passwordData) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch(`${apiUrl}/users/me/password`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(passwordData),
-  });
-
-  if (!response.ok) {
-    throw new Error('Erreur lors de la mise à jour du mot de passe.');
-  }
-
-  const data = await response.json();
-  return data;
-};
-
 export const getTopMovies = async () => {
   try {
     const response = await axios.get(`${apiUrl}/movies`);
     const movies = response.data.map(movie => ({
       ...movie,
-      image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg', // Ajouter l'URL de l'affiche complète
+      image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg',
     }));
     return movies;
   } catch (error) {
@@ -112,7 +127,7 @@ export const getTopSeries = async () => {
     const series = response.data.map(serie => ({
       ...serie,
       posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
-      title: serie.name, // Pour que le composant SerieCard affiche correctement le titre
+      title: serie.name,
     }));
     return series;
   } catch (error) {
@@ -121,10 +136,9 @@ export const getTopSeries = async () => {
   }
 };
 
-
 export const getMovieById = async (id) => {
   try {
-    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=4edc74f5d6c3356f7a70a0ff694ecf1b&language=fr-fr&append_to_response=credits`);
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=fr-fr&append_to_response=credits`);
     return {
       ...response.data,
       image: response.data.poster_path ? `${imageUrl}${response.data.poster_path}` : '/path/to/default-image.jpg',
@@ -137,15 +151,11 @@ export const getMovieById = async (id) => {
 
 export const getSerieById = async (id) => {
   try {
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-fr&append_to_response=credits`
-    );
+    const response = await axios.get(`https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-fr&append_to_response=credits`);
     return {
       ...response.data,
-      posterUrl: response.data.poster_path
-        ? `${imageUrl}${response.data.poster_path}`
-        : '/path/to/default-image.jpg',
-      title: response.data.name, // pour harmoniser avec SerieCard
+      posterUrl: response.data.poster_path ? `${imageUrl}${response.data.poster_path}` : '/path/to/default-image.jpg',
+      title: response.data.name,
     };
   } catch (error) {
     console.error("Erreur lors de la récupération des détails de la série :", error);
@@ -153,78 +163,110 @@ export const getSerieById = async (id) => {
   }
 };
 
-// Récupération des plateformes de streaming par pays pour un film spécifique
-export const getStreamingPlatforms = async (id, countryCode) => {
-  if (countryCode === "fr") {
-    countryCode="FR";
-  }
-  else{
-    countryCode="US";
-  }
- 
-  try {
-    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/watch/providers?api_key=4edc74f5d6c3356f7a70a0ff694ecf1b`);
-    const platforms = response.data.results[countryCode];
-
-    return platforms ? {
-      flatrate: platforms.flatrate || [],
-    } : null;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des plateformes de streaming :", error);
-    throw error;
-  }
-};
-
-// Récupération des genres de films
-export const getGenres = async () => {
-  const response = await axios.get(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}&language=en-US`);
-  return response.data.genres;
-};
-
-// Récupération des langues disponibles
-export const getLanguages = async () => {
-  const response = await axios.get(`https://api.themoviedb.org/3/configuration/languages?api_key=${apiKey}`);
+export const getSeriesById = async (id) => {
+  const response = await axios.get(`${apiUrl}/series/${id}`);
   return response.data;
 };
 
-// Récupération des plateformes de streaming
-export const getPlatforms = async (countryCode = 'US') => {
-  const response = await axios.get(`https://api.themoviedb.org/3/watch/providers/movie?api_key=${apiKey}&language=en-US&watch_region=${countryCode}`);
-  return response.data.results;
+export const getUserProfile = async () => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${apiUrl}/users/me`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Erreur lors de la récupération des informations utilisateur.');
+  }
+  const data = await response.json();
+  return data;
 };
 
-// Récupération des films avec filtres dynamiques
-export const getFilteredMovies = async (filters) => {
-  const {
-    genre,
-    language,
-    platform,
-    minRating,
-    releaseYear,
-    minDuration,
-    maxDuration,
-    page
-  } = filters;
-
-  const params = {
-    api_key: apiKey,
-    language: 'en-US',
-    watch_region: 'US',
-    page: page || 1,
-  };
-
-  if (genre) params.with_genres = genre;
-  if (language) params.with_original_language = language;
-  if (platform) {
-    params.with_watch_providers = platform;
-    params.with_watch_monetization_types = 'flatrate'; // pour ne récupérer que les offres de streaming
+export const updateUserProfile = async (userData) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${apiUrl}/users/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    throw new Error('Erreur lors de la mise à jour du profil.');
   }
-  if (minRating) params["vote_average.gte"] = minRating;
-  if (releaseYear) params.primary_release_year = releaseYear;
-  if (minDuration) params["with_runtime.gte"] = minDuration;
-  if (maxDuration) params["with_runtime.lte"] = maxDuration;
+  const data = await response.json();
+  return data;
+};
 
-  try {
+export const updatePassword = async (passwordData) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${apiUrl}/users/me/password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(passwordData),
+  });
+  if (!response.ok) {
+    throw new Error('Erreur lors de la mise à jour du mot de passe.');
+  }
+  const data = await response.json();
+  return data;
+};
+
+export const getGenres = async () => {
+  const response = await axios.get(`https://api.themoviedb.org/3/genre/movie/list`, {
+    params: { api_key: apiKey, language: 'en-US' }
+  });
+  return response.data.genres;
+};
+
+export const getLanguages = async () => {
+  const response = await axios.get(`https://api.themoviedb.org/3/configuration/languages`, {
+    params: { api_key: apiKey }
+  });
+  return response.data;
+};
+
+export const getCountries = async () => {
+  const response = await axios.get(`https://api.themoviedb.org/3/configuration/countries`, {
+    params: { api_key: apiKey }
+  });
+  return response.data;
+};
+
+/**
+ * Récupère les films en fonction des filtres.
+ */
+export const getFilteredMovies = async (filters) => {
+  const { genre, country, platform, minRating, releaseYear, minDuration, maxDuration, page, sortBy } = filters;
+  const selectedCountry = country || 'FR';
+
+  if (platform === "cinema") {
+    // Simule "actuellement au cinéma" avec un intervalle de dates
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const params = {
+      api_key: apiKey,
+      language: 'fr-FR',
+      region: selectedCountry,
+      page: page || 1,
+      "primary_release_date.gte": pastDate,
+      "primary_release_date.lte": today
+    };
+    // Autres filtres
+    if (genre) params.with_genres = genre;
+    if (minRating) params["vote_average.gte"] = minRating;
+    if (releaseYear) params.primary_release_year = releaseYear;
+    if (minDuration) params["with_runtime.gte"] = minDuration;
+    if (maxDuration) params["with_runtime.lte"] = maxDuration;
+    // Tri
+    if (sortBy) params.sort_by = sortBy;
+
     const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });
     const movies = response.data.results.map(movie => ({
       ...movie,
@@ -234,26 +276,79 @@ export const getFilteredMovies = async (filters) => {
       results: movies,
       total_pages: response.data.total_pages,
     };
+  } else {
+    // Filtres classiques
+    const params = {
+      api_key: apiKey,
+      language: 'fr-FR',
+      watch_region: selectedCountry,
+      page: page || 1,
+    };
+    if (genre) params.with_genres = genre;
+    if (platform) {
+      params.with_watch_providers = platform;
+      params.with_watch_monetization_types = 'flatrate';
+    }
+    if (minRating) params["vote_average.gte"] = minRating;
+    if (releaseYear) params.primary_release_year = releaseYear;
+    if (minDuration) params["with_runtime.gte"] = minDuration;
+    if (maxDuration) params["with_runtime.lte"] = maxDuration;
+    if (sortBy) params.sort_by = sortBy;
+
+    const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });
+    const movies = response.data.results.map(movie => ({
+      ...movie,
+      image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg',
+    }));
+    return {
+      results: movies,
+      total_pages: response.data.total_pages,
+    };
+  }
+};
+
+/**
+ * Récupère les séries en fonction des filtres.
+ */
+export const getFilteredSeries = async (filters) => {
+  const { genre, language, platform, minRating, seasons, page } = filters;
+  const params = {
+    api_key: apiKey,
+    language: 'fr-FR',
+    page: page || 1,
+  };
+  if (genre) params.with_genres = genre;
+  if (language) params.with_original_language = language;
+  if (platform) {
+    params.with_watch_providers = platform;
+    params.with_watch_monetization_types = 'flatrate';
+  }
+  if (minRating) params["vote_average.gte"] = minRating;
+  try {
+    const response = await axios.get('https://api.themoviedb.org/3/discover/tv', { params });
+    let series = response.data.results.map(serie => ({
+      ...serie,
+      posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
+      title: serie.name,
+    }));
+    if (seasons) {
+      series = series.filter(serie => serie.number_of_seasons && serie.number_of_seasons >= parseInt(seasons));
+    }
+    return {
+      results: series,
+      total_pages: response.data.total_pages,
+    };
   } catch (error) {
-    console.error("Erreur lors de la récupération des films filtrés :", error);
+    console.error("Erreur lors de la récupération des séries filtrées :", error);
     throw error;
   }
 };
 
-export const getFilteredSeries = async (filters) => {
-  try {
-    const response = await axios.get(`${apiUrl}/series`, { params: filters });
-    const series = response.data.map(serie => ({
-      ...serie,
-      posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
-      title: serie.name, // Pour que le composant SerieCard puisse afficher le titre
-    }));
-    return {
-      results: series,
-      total_pages: 1, // Adapté pour une API sans pagination
-    };
-  } catch (error) {
-    throw error;
-  }
+/**
+ * Exemple d'implémentation de getWatchedItems
+ */
+export const getWatchedItems = async () => {
+  // Ici, vous pouvez appeler votre API backend pour récupérer les films visionnés par l'utilisateur.
+  // Pour l'instant, nous retournons un tableau vide.
+  return [];
 };
-// Autres fonctions API...

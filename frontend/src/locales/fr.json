@@ -72,5 +72,12 @@
   "firstAirDate":"Première date de diffusion",
   "topSeriesOfTheWeek":"Classement des Série de la semaine",
   "numberOfSeasons":"Nombre de saisons",
-  "totalNumberOfEpisodes":"Nombre total d'épisodes"
+  "totalNumberOfEpisodes":"Nombre total d'épisodes",
+  "france":"France",
+  "previous":"Précédent",
+  "next":"Suivant",
+  "page":"Page",
+  "country":"Pays",
+  "currentlyInTheaters":"Actuellement au cinéma",
+  "notAvailableInCountry":"Non disponible dans ce pays"
 }

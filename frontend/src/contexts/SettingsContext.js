@@ -8,6 +8,9 @@ export const SettingsProvider = ({ children }) => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'system');
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'fr');
   const [notificationsEnabled, setNotificationsEnabled] = useState(JSON.parse(localStorage.getItem('notificationsEnabled')) || true);
+  
+  // Ajout du state pour le pays (par défaut 'FR' pour la France)
+  const [country, setCountry] = useState(localStorage.getItem('country') || 'FR');
 
   // Fonction pour appliquer le thème en fonction des préférences
   const applyTheme = (currentTheme) => {
@@ -19,13 +22,13 @@ export const SettingsProvider = ({ children }) => {
     }
   };
 
-  // Effet pour appliquer le thème lors du chargement et lorsque le thème change
+  // Appliquer le thème et sauvegarder dans le localStorage
   useEffect(() => {
     applyTheme(theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Ecouteur pour détecter les changements du système si le thème est "system"
+  // Ecoute des changements du système si le thème est "system"
   useEffect(() => {
     const systemThemeListener = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemThemeChange = (e) => {
@@ -36,14 +39,30 @@ export const SettingsProvider = ({ children }) => {
     return () => systemThemeListener.removeEventListener('change', handleSystemThemeChange);
   }, [theme]);
 
-  // Changer la langue globalement
+  // Changer la langue globalement et la sauvegarder dans le localStorage
   useEffect(() => {
-    i18n.changeLanguage(language);  // Change la langue dans i18next
+    i18n.changeLanguage(language);
     localStorage.setItem('language', language);
   }, [language]);
 
+  // Sauvegarder le pays dans le localStorage dès qu'il change
+  useEffect(() => {
+    localStorage.setItem('country', country);
+  }, [country]);
+
   return (
-    <SettingsContext.Provider value={{ theme, setTheme, language, setLanguage, notificationsEnabled, setNotificationsEnabled }}>
+    <SettingsContext.Provider
+      value={{
+        theme,
+        setTheme,
+        language,
+        setLanguage,
+        notificationsEnabled,
+        setNotificationsEnabled,
+        country,
+        setCountry
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

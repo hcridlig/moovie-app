@@ -4,8 +4,8 @@ import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 
 function SettingsPage() {
-  const { theme, setTheme, language, setLanguage, notificationsEnabled, setNotificationsEnabled } = useContext(SettingsContext);
-  const { t } = useTranslation();  // Utilisez le hook useTranslation
+  const { theme, setTheme, language, setLanguage, notificationsEnabled, setNotificationsEnabled, country, setCountry } = useContext(SettingsContext);
+  const { t } = useTranslation();
 
   return (
     <div className="container mx-auto mt-12 px-4 py-8">
@@ -25,6 +25,16 @@ function SettingsPage() {
         <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-3/4 p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
           <option value="fr">Français - (France)</option>
           <option value="en">English - (USA)</option>
+        </select>
+      </div>
+
+      {/* Nouveau sélecteur de pays */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 max-w-md mx-auto">
+        <h3 className="text-xl font-semibold mb-4 dark:text-white">{t('country')}</h3>
+        <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-3/4 p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+          <option value="FR">France</option>
+          <option value="US">USA</option>
+          {/* Vous pouvez ajouter d'autres options ici */}
         </select>
       </div>
 
