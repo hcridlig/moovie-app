@@ -14,6 +14,7 @@ function SeriesPage() {
 
   const [genres, setGenres] = useState([]);
   const [platforms, setPlatformsState] = useState([]);
+  const language = localStorage.getItem('language') || 'en';
 
   // On garde le même objet de filtres : seasons => géré par le backend
   const [filters, setFilters] = useState({
@@ -64,7 +65,7 @@ function SeriesPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const tvGenres = await getTvGenres('fr-FR');
+        const tvGenres = await getTvGenres(`${language}-FR`);
         setGenres(tvGenres);
 
         const defaultPlatforms = await getPlatforms(country);
@@ -76,7 +77,7 @@ function SeriesPage() {
       }
     };
     fetchData();
-  }, [country, appliedFilters, sortBy, handleSearch]);
+  }, [country, appliedFilters, sortBy, language, handleSearch]);
 
   // Quand on change le tri ou les filtres, on relance la recherche à la page 1
   useEffect(() => {
