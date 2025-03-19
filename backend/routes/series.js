@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const seriesController = require('../controllers/seriesController');
 
+// Nouveau endpoint pour récupérer des séries filtrées (minSeasons, etc.)
+router.get('/discover', seriesController.discoverSeries);
+
 // Récupérer la liste des séries tendances
 router.get('/', seriesController.getTrendingSeries);
 

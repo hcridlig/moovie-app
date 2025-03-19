@@ -15,6 +15,7 @@ function SeriesPage() {
   const [genres, setGenres] = useState([]);
   const [platforms, setPlatformsState] = useState([]);
 
+  // On garde le même objet de filtres : seasons => géré par le backend
   const [filters, setFilters] = useState({
     genre: '',
     platform: '',
@@ -30,17 +31,15 @@ function SeriesPage() {
   });
 
   const [sortBy, setSortBy] = useState('');
-
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  /**
-   * handleSearch mémorisée pour éviter la recréation
-   */
+  // handleSearch
   const handleSearch = useCallback(
     async (newPage = 1, currentFilters = appliedFilters, currentSortBy = sortBy, currentCountry = country) => {
       setLoading(true);
       try {
+        // On combine les filtres
         const searchFilters = {
           ...currentFilters,
           sortBy: currentSortBy,
@@ -48,6 +47,7 @@ function SeriesPage() {
           page: newPage,
         };
         const { results, total_pages } = await getFilteredSeries(searchFilters);
+
         setSeries(results);
         setTotalPages(total_pages);
         setPage(newPage);
@@ -60,9 +60,7 @@ function SeriesPage() {
     [appliedFilters, sortBy, country]
   );
 
-  /**
-   * Chargement initial : genres, plateformes, recherche initiale
-   */
+  // Chargement initial
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -77,19 +75,15 @@ function SeriesPage() {
         console.error('Erreur lors de la récupération des données pour les séries :', error);
       }
     };
-    // On inclut ici country, appliedFilters, sortBy, handleSearch
     fetchData();
   }, [country, appliedFilters, sortBy, handleSearch]);
 
-  /**
-   * Quand on change le tri, le pays ou les filtres appliqués,
-   * on refait une recherche à la page 1
-   */
+  // Quand on change le tri ou les filtres, on relance la recherche à la page 1
   useEffect(() => {
     handleSearch(1, appliedFilters, sortBy, country);
-    // On ajoute handleSearch pour éviter l'avertissement
   }, [sortBy, country, appliedFilters, handleSearch]);
 
+  // Modif d'un champ du formulaire
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     if (name === 'sortBy') {
@@ -99,11 +93,13 @@ function SeriesPage() {
     }
   };
 
+  // Appliquer les filtres
   const handleApplyFilters = () => {
     setAppliedFilters(filters);
     handleSearch(1, filters, sortBy, country);
   };
 
+  // Reset
   const handleResetFilters = () => {
     const defaultFilters = {
       genre: '',
@@ -117,6 +113,7 @@ function SeriesPage() {
     handleSearch(1, defaultFilters, '', country);
   };
 
+  // Pagination
   const handlePrevPage = () => {
     if (page > 1) {
       handleSearch(page - 1, appliedFilters, sortBy, country);
@@ -259,7 +256,7 @@ function SeriesPage() {
           </button>
         </div>
 
-        {/* Zone principale : tri et affichage des séries */}
+        {/* Zone principale */}
         <div className="flex-1">
           <div className="flex items-center justify-end mb-4">
             <label className="mr-2 font-semibold">Trier par :</label>
@@ -300,6 +297,7 @@ function SeriesPage() {
         </div>
       </div>
 
+      {/* Pagination */}
       <div className="flex items-center justify-center space-x-2 my-6">
         <button
           onClick={handlePrevPage}

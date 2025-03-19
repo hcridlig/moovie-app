@@ -4,6 +4,7 @@ import axios from 'axios';
 const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
 const imageUrl = 'https://image.tmdb.org/t/p/w500'; // Base URL pour les affiches
 const apiKey = "4edc74f5d6c3356f7a70a0ff694ecf1b";
+const backendBaseUrl = process.env.REACT_APP_API_URL; 
 
 // Cache pour les résultats de getPlatforms par pays
 const providerCache = {};
@@ -312,78 +313,31 @@ export const getFilteredMovies = async (filters) => {
  */
 export const getFilteredSeries = async (filters) => {
   const {
-    genre,      // ID du genre TV (ex: 10759 = Action & Adventure)
-    platform,   // ID du watch provider
-    minRating,  // Note minimale
-    seasons,    // Nombre minimal de saisons
-    page,       // Numéro de page
-    sortBy,     // Tri, ex: first_air_date.desc
-    country     // Pays, ex: FR => watch_region=FR
+    genre,
+    platform,
+    minRating,
+    seasons,
+    page = 1,
+    sortBy,
+    country = 'FR',
   } = filters;
 
-  // Paramètres pour l'endpoint discover/tv
-  const params = {
-    api_key: apiKey,
-    language: 'fr-FR',
-    page: page || 1,
-  };
-
-  if (genre) {
-    params.with_genres = genre;
-  }
-  if (platform) {
-    params.with_watch_providers = platform;
-    params.with_watch_monetization_types = 'flatrate';
-  }
-  if (minRating) {
-    params['vote_average.gte'] = minRating;
-  }
-  if (sortBy) {
-    params.sort_by = sortBy;
-  }
-  if (country) {
-    params.watch_region = country;
-  }
-
   try {
-    // Premier appel : /discover/tv
-    const response = await axios.get('https://api.themoviedb.org/3/discover/tv', { params });
-    let series = response.data.results.map(serie => ({
-      ...serie,
-      posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
-      title: serie.name,
-    }));
-
-    // Si on a un filtre "nombre de saisons", on fait un second appel /tv/{id} pour chaque série
-    // afin de récupérer number_of_seasons et filtrer localement.
-    if (seasons) {
-      const minSeasons = parseInt(seasons, 10);
-
-      // Pour chaque série de la liste, on va chercher le détail
-      const seriesWithDetails = await Promise.all(
-        series.map(async (item) => {
-          const detailResp = await axios.get(`https://api.themoviedb.org/3/tv/${item.id}`, {
-            params: {
-              api_key: apiKey,
-              language: 'fr-FR'
-            }
-          });
-          const detailData = detailResp.data;
-          // On renvoie un nouvel objet avec le nombre de saisons
-          return {
-            ...item,
-            number_of_seasons: detailData.number_of_seasons
-          };
-        })
-      );
-
-      // On filtre localement
-      series = seriesWithDetails.filter(s => s.number_of_seasons >= minSeasons);
-    }
-
+    const response = await axios.get(`${backendBaseUrl}/series/discover`, {
+      params: {
+        genre,
+        platform,
+        minRating,
+        seasons,
+        page,
+        sortBy,
+        country,
+      },
+    });
+    // Notre backend renvoie: { page, total_pages, results: [...] }
     return {
-      results: series,
-      total_pages: response.data.total_pages,
+      results: response.data.results || [],
+      total_pages: response.data.total_pages || 1,
     };
   } catch (error) {
     console.error("Erreur lors de la récupération des séries filtrées :", error);
