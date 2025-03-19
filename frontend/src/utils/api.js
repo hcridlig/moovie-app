@@ -138,8 +138,9 @@ export const getTopSeries = async () => {
 };
 
 export const getMovieById = async (id) => {
+  const language = localStorage.getItem('language') || 'fr-FR';
   try {
-    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=fr-fr&append_to_response=credits`);
+    const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=${language}&append_to_response=credits`);
     return {
       ...response.data,
       image: response.data.poster_path ? `${imageUrl}${response.data.poster_path}` : '/path/to/default-image.jpg',
@@ -246,6 +247,7 @@ export const getCountries = async () => {
 export const getFilteredMovies = async (filters) => {
   const { genre, country, platform, minRating, releaseYear, minDuration, maxDuration, page, sortBy } = filters;
   const selectedCountry = country || 'FR';
+  const language = localStorage.getItem('language') || 'fr-FR';
 
   if (platform === "cinema") {
     // Simule "actuellement au cinéma" avec un intervalle de dates
@@ -253,7 +255,7 @@ export const getFilteredMovies = async (filters) => {
     const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const params = {
       api_key: apiKey,
-      language: 'fr-FR',
+      language: language,
       region: selectedCountry,
       page: page || 1,
       "primary_release_date.gte": pastDate,
@@ -281,7 +283,7 @@ export const getFilteredMovies = async (filters) => {
     // Filtres classiques
     const params = {
       api_key: apiKey,
-      language: 'fr-FR',
+      language: language,
       watch_region: selectedCountry,
       page: page || 1,
     };
