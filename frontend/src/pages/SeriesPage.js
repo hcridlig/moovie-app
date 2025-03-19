@@ -3,98 +3,132 @@ import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsContext } from '../contexts/SettingsContext';
 import SerieCard from '../components/SerieCard';
-import {
-  getFilteredSeries,
-  getGenres,
-  getLanguages,
-  getPlatforms,
-} from '../utils/api';
+import { getFilteredSeries, getTvGenres, getPlatforms } from '../utils/api';
 
 function SeriesPage() {
   const { t } = useTranslation();
-  const { theme } = useContext(SettingsContext);
+  const { theme, country } = useContext(SettingsContext);
 
-  // États pour les séries et le chargement
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // États pour les filtres
   const [genres, setGenres] = useState([]);
-  const [languages, setLanguages] = useState([]);
-  const [platforms, setPlatforms] = useState([]);
+  const [platforms, setPlatformsState] = useState([]);
+
   const [filters, setFilters] = useState({
     genre: '',
-    language: '',
     platform: '',
-    minRating: 0,
-    seasons: '',
+    minRating: '',
+    seasons: ''
   });
 
-  // États pour la pagination
+  const [appliedFilters, setAppliedFilters] = useState({
+    genre: '',
+    platform: '',
+    minRating: '',
+    seasons: ''
+  });
+
+  const [sortBy, setSortBy] = useState('');
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Définition de handleSearch avec useCallback
-  const handleSearch = useCallback(async (newPage = page) => {
-    setLoading(true);
-    try {
-      const { results, total_pages } = await getFilteredSeries({
-        ...filters,
-        page: newPage,
-      });
-      setSeries(results);
-      setTotalPages(total_pages);
-      setPage(newPage);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des séries filtrées :', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, page]);
+  /**
+   * handleSearch mémorisée pour éviter la recréation
+   */
+  const handleSearch = useCallback(
+    async (newPage = 1, currentFilters = appliedFilters, currentSortBy = sortBy, currentCountry = country) => {
+      setLoading(true);
+      try {
+        const searchFilters = {
+          ...currentFilters,
+          sortBy: currentSortBy,
+          country: currentCountry,
+          page: newPage,
+        };
+        const { results, total_pages } = await getFilteredSeries(searchFilters);
+        setSeries(results);
+        setTotalPages(total_pages);
+        setPage(newPage);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des séries filtrées :', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [appliedFilters, sortBy, country]
+  );
 
-  // Fonction pour réinitialiser les filtres
-  const handleResetFilters = () => {
-    setFilters({
-      genre: '',
-      language: '',
-      platform: '',
-      minRating: 0,
-      seasons: '',
-    });
-    setPage(1);
-    handleSearch(1);
-  };
-
-  // useEffect qui charge les données initiales
+  /**
+   * Chargement initial : genres, plateformes, recherche initiale
+   */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [genreData, languageData] = await Promise.all([
-          getGenres(),
-          getLanguages(),
-        ]);
-        setGenres(genreData);
-        setLanguages(languageData);
-        const defaultPlatforms = await getPlatforms();
-        setPlatforms(defaultPlatforms);
-        await handleSearch(1);
+        const tvGenres = await getTvGenres('fr-FR');
+        setGenres(tvGenres);
+
+        const defaultPlatforms = await getPlatforms(country);
+        setPlatformsState(defaultPlatforms);
+
+        await handleSearch(1, appliedFilters, sortBy, country);
       } catch (error) {
         console.error('Erreur lors de la récupération des données pour les séries :', error);
       }
     };
+    // On inclut ici country, appliedFilters, sortBy, handleSearch
     fetchData();
-  }, [handleSearch]);
+  }, [country, appliedFilters, sortBy, handleSearch]);
 
-  // Gestion des changements de filtres
+  /**
+   * Quand on change le tri, le pays ou les filtres appliqués,
+   * on refait une recherche à la page 1
+   */
+  useEffect(() => {
+    handleSearch(1, appliedFilters, sortBy, country);
+    // On ajoute handleSearch pour éviter l'avertissement
+  }, [sortBy, country, appliedFilters, handleSearch]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === 'sortBy') {
+      setSortBy(value);
+    } else {
+      setFilters((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  // Fonction pour générer la pagination
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
+    handleSearch(1, filters, sortBy, country);
+  };
+
+  const handleResetFilters = () => {
+    const defaultFilters = {
+      genre: '',
+      platform: '',
+      minRating: '',
+      seasons: ''
+    };
+    setFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+    setSortBy('');
+    handleSearch(1, defaultFilters, '', country);
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      handleSearch(page - 1, appliedFilters, sortBy, country);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      handleSearch(page + 1, appliedFilters, sortBy, country);
+    }
+  };
+
   const getPageNumbers = (current, total, maxVisible = 5) => {
     if (total <= 1) return [1];
     const half = Math.floor(maxVisible / 2);
@@ -127,33 +161,30 @@ function SeriesPage() {
     return pages;
   };
 
-  const handlePrevPage = () => {
-    if (page > 1) {
-      handleSearch(page - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      handleSearch(page + 1);
-    }
-  };
-
   return (
-    <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div
+      className={`container mx-auto px-4 py-8 ${
+        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
+      }`}
+    >
       <h1 className="text-3xl font-bold mb-4">{t('seriesFilters') || 'Series Filters'}</h1>
 
       <div className="flex">
-        {/* Barre latérale de filtres */}
-        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} max-h-[58vh] overflow-y-auto`}>
-          {/* Filtre Genre */}
+        {/* Barre latérale des filtres */}
+        <div
+          className={`w-1/4 p-6 rounded-lg shadow-md ${
+            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          } max-h-[50vh] overflow-y-auto`}
+        >
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('genre')}</label>
             <select
               name="genre"
               value={filters.genre}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded mt-2 ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             >
               <option value="">{t('allGenres')}</option>
               {genres.map((g) => (
@@ -164,43 +195,25 @@ function SeriesPage() {
             </select>
           </div>
 
-          {/* Filtre Langue */}
-          <div className="mb-4">
-            <label className="block font-semibold dark:text-gray-200">{t('language')}</label>
-            <select
-              name="language"
-              value={filters.language}
-              onChange={handleFilterChange}
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
-            >
-              <option value="">{t('allLanguages')}</option>
-              {languages.map((lang) => (
-                <option key={lang.iso_639_1} value={lang.iso_639_1}>
-                  {lang.english_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtre Plateforme */}
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('platform')}</label>
             <select
               name="platform"
               value={filters.platform}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded mt-2 ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             >
               <option value="">{t('allPlatforms')}</option>
-              {platforms.map((platform) => (
-                <option key={platform.provider_id} value={platform.provider_id}>
-                  {platform.provider_name}
+              {platforms.map((p) => (
+                <option key={p.provider_id} value={p.provider_id}>
+                  {p.provider_name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Filtre Note minimale */}
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('minRating')}</label>
             <input
@@ -210,14 +223,15 @@ function SeriesPage() {
               onChange={handleFilterChange}
               min="0"
               max="10"
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded mt-2 ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             />
           </div>
 
-          {/* Filtre Nombre de saisons */}
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">
-              {t('numberOfSeasons') || 'Nombre de saisons'}
+              {t('numberOfSeasons') || 'Number of Seasons'}
             </label>
             <input
               type="number"
@@ -225,12 +239,14 @@ function SeriesPage() {
               value={filters.seasons}
               onChange={handleFilterChange}
               min="0"
-              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded mt-2 ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             />
           </div>
 
           <button
-            onClick={() => handleSearch(1)}
+            onClick={handleApplyFilters}
             className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full"
           >
             {t('search')}
@@ -243,26 +259,55 @@ function SeriesPage() {
           </button>
         </div>
 
-        {/* Grille des séries */}
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ml-8">
-          {loading
-            ? Array.from({ length: 8 }).map((_, idx) => (
-                <div key={idx} className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg"></div>
-              ))
-            : series.map((serie) => <SerieCard key={serie.id} serie={serie} />)}
+        {/* Zone principale : tri et affichage des séries */}
+        <div className="flex-1">
+          <div className="flex items-center justify-end mb-4">
+            <label className="mr-2 font-semibold">Trier par :</label>
+            <select
+              name="sortBy"
+              value={sortBy}
+              onChange={handleFilterChange}
+              className={`p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
+            >
+              <option value="">Pertinence (défaut)</option>
+              <option value="first_air_date.asc">Date de première diffusion : Croissant</option>
+              <option value="first_air_date.desc">Date de première diffusion : Décroissant</option>
+              <option value="vote_average.asc">Note : Croissante</option>
+              <option value="vote_average.desc">Note : Décroissante</option>
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ml-8">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg"
+                />
+              ))}
+            </div>
+          ) : series.length === 0 ? (
+            <div className="text-center mt-10 text-lg">Aucune série à afficher.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ml-8">
+              {series.map((serie) => (
+                <SerieCard key={serie.id} serie={serie} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Pagination */}
       <div className="flex items-center justify-center space-x-2 my-6">
         <button
           onClick={handlePrevPage}
           disabled={page === 1}
-          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
         >
           {t('previous')}
         </button>
-
         {getPageNumbers(page, totalPages, 5).map((p, index) =>
           p === '...' ? (
             <span key={index} className="px-3 py-1">
@@ -271,11 +316,8 @@ function SeriesPage() {
           ) : (
             <button
               key={p}
-              onClick={(e) => {
-                e.currentTarget.focus();
-                handleSearch(p);
-              }}
-              className={`px-3 py-1 rounded border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              onClick={() => handleSearch(p, appliedFilters, sortBy, country)}
+              className={`px-3 py-1 rounded border ${
                 p === page
                   ? 'bg-indigo-600 text-white'
                   : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -285,11 +327,10 @@ function SeriesPage() {
             </button>
           )
         )}
-
         <button
           onClick={handleNextPage}
           disabled={page === totalPages}
-          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
         >
           {t('next')}
         </button>

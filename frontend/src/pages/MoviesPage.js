@@ -17,7 +17,7 @@ function MoviesPage() {
   const [genres, setGenres] = useState([]);
   const [platforms, setPlatforms] = useState([]);
 
-  // Filtres (tous par défaut vides sauf sortBy qui déclenche auto update)
+  // Filtres
   const [filters, setFilters] = useState({
     genre: '',
     platform: '',
@@ -25,7 +25,7 @@ function MoviesPage() {
     releaseYear: '',
     minDuration: '',
     maxDuration: '',
-    sortBy: '' // Tri par défaut (vide = tri "mis en avant")
+    sortBy: ''
   });
 
   // Pagination
@@ -33,32 +33,8 @@ function MoviesPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   /**
-   * Chargement initial des genres, plateformes et films (avec filtres par défaut)
-   */
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const genreData = await getGenres();
-        // Ajout manuel du genre "Manga" s'il n'existe pas déjà
-        if (!genreData.find(g => g.name.toLowerCase() === 'manga')) {
-          genreData.push({ id: 9999, name: 'Manga' });
-        }
-        setGenres(genreData);
-
-        const platformData = await getPlatforms(country);
-        setPlatforms(platformData);
-
-        // Chargement initial des films avec filtres par défaut
-        await handleSearch(1, filters, country);
-      } catch (error) {
-        console.error('Erreur lors de la récupération des données:', error);
-      }
-    };
-    fetchData();
-  }, [country]);
-
-  /**
-   * Fonction de recherche : charge les films en fonction des filtres, du pays et de la page.
+   * Fonction de recherche : mémorisée avec useCallback
+   * pour éviter de la recréer à chaque rendu.
    */
   const handleSearch = useCallback(
     async (newPage = 1, currentFilters = filters, currentCountry = country) => {
@@ -69,7 +45,7 @@ function MoviesPage() {
           ...currentFilters,
           country: currentCountry,
           minRating: minRatingNum,
-          page: newPage
+          page: newPage,
         });
         setMovies(results);
         setTotalPages(total_pages);
@@ -84,23 +60,56 @@ function MoviesPage() {
   );
 
   /**
-   * Gère le changement des filtres (sauf le tri) :
-   * Les autres filtres se mettent à jour dans le state sans déclencher la recherche.
+   * Chargement initial des genres, plateformes et films (avec filtres par défaut)
+   */
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const genreData = await getGenres();
+        if (!genreData.find((g) => g.name.toLowerCase() === 'manga')) {
+          genreData.push({ id: 9999, name: 'Manga' });
+        }
+        setGenres(genreData);
+
+        const platformData = await getPlatforms(country);
+        setPlatforms(platformData);
+
+        // Recherche initiale
+        await handleSearch(1, filters, country);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des données:', error);
+      }
+    };
+    fetchData();
+    // On inclut ici country, filters et handleSearch pour respecter ESLint
+  }, [country, filters, handleSearch]);
+
+  /**
+   * Quand le tri "sortBy" change, on relance la recherche (page = 1).
+   */
+  useEffect(() => {
+    handleSearch(1, filters, country);
+    // On inclut country, filters et handleSearch
+  }, [filters.sortBy, country, filters, handleSearch]);
+
+  /**
+   * Gère le changement des filtres (sauf sortBy qui est pris en compte
+   * automatiquement dans l'effect ci-dessus).
    */
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   /**
-   * Lorsque l'utilisateur clique sur "Rechercher", on recharge les films avec les filtres actuels.
+   * Lorsque l'utilisateur clique sur "Rechercher", on applique les filtres courants
    */
   const handleApplyFilters = () => {
     handleSearch(1, filters, country);
   };
 
   /**
-   * Réinitialise les filtres et recharge la liste avec les valeurs par défaut.
+   * Réinitialise les filtres.
    */
   const handleResetFilters = () => {
     const defaultFilters = {
@@ -117,16 +126,7 @@ function MoviesPage() {
   };
 
   /**
-   * Mise à jour automatique de la recherche lorsque le tri (sortBy) change.
-   * Le changement de tri déclenche une recherche sans attendre le clic sur "Rechercher".
-   */
-  useEffect(() => {
-    // Lorsqu'on change sortBy, on recharge la première page avec le nouveau tri
-    handleSearch(1, filters, country);
-  }, [filters.sortBy]);
-
-  /**
-   * Pagination : navigation entre les pages.
+   * Pagination
    */
   const handlePrevPage = () => {
     if (page > 1) {
@@ -139,9 +139,6 @@ function MoviesPage() {
     }
   };
 
-  /**
-   * Génère les numéros de page pour la pagination.
-   */
   const getPageNumbers = (current, total, maxVisible = 5) => {
     if (total <= 1) return [1];
     const half = Math.floor(maxVisible / 2);
@@ -175,12 +172,20 @@ function MoviesPage() {
   };
 
   return (
-    <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div
+      className={`container mx-auto px-4 py-8 ${
+        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
+      }`}
+    >
       <h1 className="text-3xl font-bold mb-6">{t('movieFilters')}</h1>
 
       <div className="flex space-x-8">
         {/* Barre latérale des filtres */}
-        <div className={`w-1/4 p-6 rounded-lg shadow-md h-fit ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+        <div
+          className={`w-1/4 p-6 rounded-lg shadow-md h-fit ${
+            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}
+        >
           {/* Filtre Genre */}
           <div className="mb-4">
             <label className="block font-semibold mb-1 dark:text-gray-200">{t('genre')}</label>
@@ -188,7 +193,9 @@ function MoviesPage() {
               name="genre"
               value={filters.genre}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             >
               <option value="">{t('allGenres')}</option>
               {genres.map((g) => (
@@ -206,7 +213,9 @@ function MoviesPage() {
               name="platform"
               value={filters.platform}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             >
               <option value="">{t('allPlatforms')}</option>
               <option value="cinema">{t('currentlyInTheaters') || 'Actuellement au cinéma'}</option>
@@ -228,7 +237,9 @@ function MoviesPage() {
               onChange={handleFilterChange}
               min="0"
               max="10"
-              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             />
           </div>
 
@@ -242,7 +253,9 @@ function MoviesPage() {
               onChange={handleFilterChange}
               min="1900"
               max={new Date().getFullYear()}
-              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`w-full p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             />
           </div>
 
@@ -256,7 +269,9 @@ function MoviesPage() {
                 value={filters.minDuration}
                 onChange={handleFilterChange}
                 placeholder={t('min')}
-                className={`w-1/2 p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+                className={`w-1/2 p-2 border rounded ${
+                  theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+                }`}
               />
               <input
                 type="number"
@@ -264,20 +279,20 @@ function MoviesPage() {
                 value={filters.maxDuration}
                 onChange={handleFilterChange}
                 placeholder={t('max')}
-                className={`w-1/2 p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+                className={`w-1/2 p-2 border rounded ${
+                  theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+                }`}
               />
             </div>
           </div>
 
-          {/* Bouton "Rechercher" pour appliquer les filtres (sauf le tri) */}
+          {/* Boutons Rechercher et Reset */}
           <button
             onClick={handleApplyFilters}
             className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 w-full"
           >
             {t('search')}
           </button>
-
-          {/* Bouton "Reset" */}
           <button
             onClick={handleResetFilters}
             className="mt-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 w-full"
@@ -286,18 +301,20 @@ function MoviesPage() {
           </button>
         </div>
 
-        {/* Zone principale : tri en haut à droite et grille de films */}
+        {/* Zone principale : tri + liste de films */}
         <div className="flex-1">
-          {/* Barre "Trier par" placée en haut à droite */}
+          {/* Tri */}
           <div className="flex items-center justify-end mb-4">
             <label className="mr-2 font-semibold">Trier par :</label>
             <select
               name="sortBy"
               value={filters.sortBy}
               onChange={handleFilterChange}
-              className={`p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+              className={`p-2 border rounded ${
+                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
+              }`}
             >
-              <option value="">Mis en avant (défaut)</option>
+              <option value="">Pertinence (défaut)</option>
               <option value="primary_release_date.asc">Date de sortie : Croissant</option>
               <option value="primary_release_date.desc">Date de sortie : Décroissant</option>
               <option value="runtime.asc">Durée : Croissant</option>
@@ -307,11 +324,14 @@ function MoviesPage() {
             </select>
           </div>
 
-          {/* Affichage de la grille des films */}
+          {/* Grille des films ou message "Aucun film" */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, idx) => (
-                <div key={idx} className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg" />
+                <div
+                  key={idx}
+                  className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg"
+                />
               ))}
             </div>
           ) : movies.length === 0 ? (
@@ -324,13 +344,13 @@ function MoviesPage() {
             </div>
           )}
 
-          {/* Pagination si des films sont affichés */}
+          {/* Pagination si des films sont trouvés */}
           {movies.length > 0 && (
             <div className="flex items-center justify-center space-x-2 my-6">
               <button
                 onClick={handlePrevPage}
                 disabled={page === 1}
-                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
               >
                 {t('previous')}
               </button>
@@ -343,7 +363,7 @@ function MoviesPage() {
                   <button
                     key={p}
                     onClick={() => handleSearch(p, filters, country)}
-                    className={`px-3 py-1 rounded border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                    className={`px-3 py-1 rounded border ${
                       p === page
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
@@ -356,7 +376,7 @@ function MoviesPage() {
               <button
                 onClick={handleNextPage}
                 disabled={page === totalPages}
-                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
               >
                 {t('next')}
               </button>

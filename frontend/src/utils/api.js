@@ -21,7 +21,7 @@ export const getPlatforms = async (countryCode = 'US') => {
   // (Les IDs utilisés ici sont donnés à titre d'exemple ; adaptez-les à vos besoins.)
   const allowedProviders = {
     // Pour la France : on affiche Netflix, Amazon Prime Video, Disney Plus, Canal+ et Apple TV+.
-    'FR': [8, 119, 337, 97, 350, 381, 283, 138, 59, 147, 61, 234, 68, 188, 192, 190, 310, 324, 415, 196, 554, 559, 567, 573, 585, 588, 593, 613, 1754],
+    'FR': [8, 119, 337, 97, 350, 381, 283, 138, 1899, 59, 147, 61, 234, 236, 68, 188, 192, 190, 310, 324, 415, 196, 554, 559, 567, 573, 585, 588, 593, 613, 1754, 2303],
 
     // Pour les États-Unis : on affiche Netflix, Amazon Prime Video, Hulu, Disney Plus, HBO Max, Apple TV+ et Peacock.
     'US': [8, 9, 15, 337, 384, 350, 386, 3, 192, 188, 531, 1770, 538, 1796, 582, 583, 584, 207, 201, 2077, 289, 290, 291, 293, 294, 300, 343, 388, 433, 438, 439, 455, 457, 475, 503, 507, 508, 514, 529, 546, 551, 554, 569, 574, 633, 634, 635, 636, 688, 73, 87, 143, 185, 191, 196, 199, 202, 204, 228, 235, 239, 251, 257, 258, 260, 268, 278, 284, 295, 309, 322, 331, 332, 344, 361, 363, 368, 397, 417, 432, 437, 464, 486, 506, 515, 526, 542, 677, 1715, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1875, 1887, 1888, 1899, 1912, 222, 209, 123, 155, 157, 1853, 1854, 1855, 1875, 1889, 1899, 1967, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1867, 1875, 1887, 1888, 1889, 1899, 1912, 1967, 201, 207, 2077, 228, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1754, 1771, 1860, 1867, 1875, 1887, 1888, 1889, 1899, 1912, 1967, 201, 207, 2077, 228, 236, 256, 257, 264, 275, 285, 307, 315, 345, 377, 422, 444, 459, 473, 525, 533, 534, 535, 545, 555, 567, 573, 574, 585, 588, 593, 613, 637, 675, 685, 692, 701],
@@ -311,29 +311,76 @@ export const getFilteredMovies = async (filters) => {
  * Récupère les séries en fonction des filtres.
  */
 export const getFilteredSeries = async (filters) => {
-  const { genre, language, platform, minRating, seasons, page } = filters;
+  const {
+    genre,      // ID du genre TV (ex: 10759 = Action & Adventure)
+    platform,   // ID du watch provider
+    minRating,  // Note minimale
+    seasons,    // Nombre minimal de saisons
+    page,       // Numéro de page
+    sortBy,     // Tri, ex: first_air_date.desc
+    country     // Pays, ex: FR => watch_region=FR
+  } = filters;
+
+  // Paramètres pour l'endpoint discover/tv
   const params = {
     api_key: apiKey,
     language: 'fr-FR',
     page: page || 1,
   };
-  if (genre) params.with_genres = genre;
-  if (language) params.with_original_language = language;
+
+  if (genre) {
+    params.with_genres = genre;
+  }
   if (platform) {
     params.with_watch_providers = platform;
     params.with_watch_monetization_types = 'flatrate';
   }
-  if (minRating) params["vote_average.gte"] = minRating;
+  if (minRating) {
+    params['vote_average.gte'] = minRating;
+  }
+  if (sortBy) {
+    params.sort_by = sortBy;
+  }
+  if (country) {
+    params.watch_region = country;
+  }
+
   try {
+    // Premier appel : /discover/tv
     const response = await axios.get('https://api.themoviedb.org/3/discover/tv', { params });
     let series = response.data.results.map(serie => ({
       ...serie,
       posterUrl: serie.poster_path ? `${imageUrl}${serie.poster_path}` : '/path/to/default-image.jpg',
       title: serie.name,
     }));
+
+    // Si on a un filtre "nombre de saisons", on fait un second appel /tv/{id} pour chaque série
+    // afin de récupérer number_of_seasons et filtrer localement.
     if (seasons) {
-      series = series.filter(serie => serie.number_of_seasons && serie.number_of_seasons >= parseInt(seasons));
+      const minSeasons = parseInt(seasons, 10);
+
+      // Pour chaque série de la liste, on va chercher le détail
+      const seriesWithDetails = await Promise.all(
+        series.map(async (item) => {
+          const detailResp = await axios.get(`https://api.themoviedb.org/3/tv/${item.id}`, {
+            params: {
+              api_key: apiKey,
+              language: 'fr-FR'
+            }
+          });
+          const detailData = detailResp.data;
+          // On renvoie un nouvel objet avec le nombre de saisons
+          return {
+            ...item,
+            number_of_seasons: detailData.number_of_seasons
+          };
+        })
+      );
+
+      // On filtre localement
+      series = seriesWithDetails.filter(s => s.number_of_seasons >= minSeasons);
     }
+
     return {
       results: series,
       total_pages: response.data.total_pages,
@@ -341,6 +388,24 @@ export const getFilteredSeries = async (filters) => {
   } catch (error) {
     console.error("Erreur lors de la récupération des séries filtrées :", error);
     throw error;
+  }
+};
+
+/**
+ * Récupère la liste des genres pour les séries (endpoint /genre/tv/list).
+ */
+export const getTvGenres = async (language = 'fr-FR') => {
+  try {
+    const response = await axios.get('https://api.themoviedb.org/3/genre/tv/list', {
+      params: {
+        api_key: apiKey,
+        language
+      }
+    });
+    return response.data.genres; // Tableau d'objets { id, name }
+  } catch (error) {
+    console.error("Erreur lors de la récupération des genres TV :", error);
+    return [];
   }
 };
 
