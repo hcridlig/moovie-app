@@ -89,10 +89,15 @@ function SeriesPage() {
     const { name, value } = e.target;
     if (name === 'sortBy') {
       setSortBy(value);
+      handleSearch(1, appliedFilters, value, country); // Apply sort immediately
     } else {
-      setFilters((prev) => ({ ...prev, [name]: value }));
+      const newFilters = { ...filters, [name]: value };
+      setFilters(newFilters);
+      setAppliedFilters(newFilters); 
+      handleSearch(1, newFilters, sortBy, country); // Perform search immediately
     }
   };
+  
 
   // Appliquer les filtres
   const handleApplyFilters = () => {
