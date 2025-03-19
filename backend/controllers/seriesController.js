@@ -91,16 +91,8 @@ module.exports = {
    * discoverSeries
    * ---------------
    */
-  discoverSeries: async (req, res) => {
-    // Vérifie la clé TMDB
-    if (!TMDB_API_KEY || TMDB_API_KEY === 'YOUR_KEY_HERE') {
-      return res.status(500).json({
-        error: 'Clé TMDB (API_KEY_TMDB) manquante ou invalide. Vérifiez vos variables d’environnement.',
-      });
-    }
-
+ discoverSeries: async (req, res) => {
     try {
-      // On récupère les filtres depuis le frontend
       const {
         genre = '',
         platform = '',
@@ -111,129 +103,88 @@ module.exports = {
         country = 'FR',
       } = req.query;
 
-      console.log('discoverSeries() - Paramètres reçus :', {
-        genre, platform, minRating, seasons, page, sortBy, country,
-      });
+      console.log('discoverSeries() - Paramètres reçus :', { genre, platform, minRating, seasons, page, sortBy, country });
 
-      // Paramètres internes
       const pageSize = 20;
       const numericPage = parseInt(page, 10) || 1;
       const minSeasons = parseInt(seasons, 10) || 0;
       const minVote = parseFloat(minRating) || 0;
-
-      // Nombre de séries filtrées dont on a besoin avant de pouvoir couvrir 'page'
       const neededCount = numericPage * pageSize;
 
       let collected = [];
       let tmdbPage = 1;
       let hasMoreTmdbPages = true;
+      const maxTmdbPages = 10; // Évite trop de requêtes
 
-      // On boucle tant qu'on n'a pas assez de séries ET qu'il reste des pages
-      while (collected.length < neededCount && hasMoreTmdbPages) {
+      while (collected.length < neededCount && hasMoreTmdbPages && tmdbPage <= maxTmdbPages) {
         const params = {
           api_key: TMDB_API_KEY,
           language: 'fr-FR',
           page: tmdbPage,
           'vote_average.gte': minVote,
           watch_region: country,
+          with_genres: genre || undefined,
+          with_watch_providers: platform || undefined,
+          with_watch_monetization_types: platform ? 'flatrate' : undefined,
+          sort_by: sortBy || undefined,
         };
-        if (genre) params.with_genres = genre;
-        if (platform) {
-          params.with_watch_providers = platform;
-          params.with_watch_monetization_types = 'flatrate';
-        }
-        if (sortBy) params.sort_by = sortBy;
 
-        console.log('discoverSeries() - Requête /discover/tv - page =', tmdbPage, 'params =', params);
+        console.log('discoverSeries() - Requête TMDB - Page :', tmdbPage);
 
-        let results = [];
-        let total_pages = 1;
-
-        // 1) Appel /discover/tv
         try {
-          const discoverResp = await axios.get('https://api.themoviedb.org/3/discover/tv', { params });
-          results = discoverResp.data.results;
-          total_pages = discoverResp.data.total_pages;
-        } catch (err) {
-          console.error('Erreur /discover/tv :', err.message);
-          if (err.response) {
-            console.error('TMDB status:', err.response.status);
-            console.error('TMDB data:', err.response.data);
-          }
-          throw err; // on renvoie l'erreur vers le catch principal
-        }
+          const { data } = await axios.get('https://api.themoviedb.org/3/discover/tv', { params });
+          const results = data.results || [];
+          const total_pages = data.total_pages;
 
-        if (tmdbPage >= total_pages) {
-          hasMoreTmdbPages = false;
-        } else {
+          if (tmdbPage >= total_pages) hasMoreTmdbPages = false;
           tmdbPage++;
-        }
 
-        // 2) Pour chaque série, on récupère /tv/{id} afin de connaître le number_of_seasons
-        for (const item of results) {
-          let detailData;
-          try {
-            const detailUrl = `https://api.themoviedb.org/3/tv/${item.id}`;
-            const detailResp = await axios.get(detailUrl, {
-              params: {
-                api_key: TMDB_API_KEY,
-                language: 'fr-FR',
-              },
-            });
-            detailData = detailResp.data;
-          } catch (err) {
-            console.error(`Erreur /tv/${item.id} :`, err.message);
-            if (err.response) {
-              console.error('TMDB status:', err.response.status);
-              console.error('TMDB data:', err.response.data);
+          // Récupérer les IDs des séries pour les détails
+          const seriesDetails = await Promise.allSettled(
+            results.map((item) =>
+              axios.get(`https://api.themoviedb.org/3/tv/${item.id}`, {
+                params: { api_key: TMDB_API_KEY, language: 'fr-FR' },
+              })
+            )
+          );
+
+          seriesDetails.forEach((detail, index) => {
+            if (detail.status === 'fulfilled') {
+              const detailData = detail.value.data;
+              if ((detailData.number_of_seasons || 0) >= minSeasons) {
+                collected.push({
+                  ...results[index],
+                  posterUrl: results[index].poster_path
+                    ? `https://image.tmdb.org/t/p/w500${results[index].poster_path}`
+                    : '/path/to/default-image.jpg',
+                  number_of_seasons: detailData.number_of_seasons,
+                });
+              }
             }
-            // on peut ignorer cette série et continuer la boucle
-            continue;
-          }
+          });
 
-          // Filtre si la série a assez de saisons
-          if ((detailData.number_of_seasons || 0) >= minSeasons) {
-            collected.push({
-              ...item,
-              posterUrl: item.poster_path
-                ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-                : '/path/to/default-image.jpg',
-              number_of_seasons: detailData.number_of_seasons,
-            });
+        } catch (err) {
+          console.error('Erreur API TMDB:', err.message);
+          if (err.response) {
+            console.error('Status:', err.response.status);
+            console.error('Détails:', err.response.data);
           }
-
-          // Si on a déjà assez de séries pour couvrir la page demandée, on arrête
-          if (collected.length >= neededCount) {
-            break;
-          }
+          break;
         }
       }
 
-      // Pagination "locale"
       const startIndex = (numericPage - 1) * pageSize;
-      const endIndex = numericPage * pageSize;
-      const pageItems = collected.slice(startIndex, endIndex);
+      const pageItems = collected.slice(startIndex, startIndex + pageSize);
+      const totalPagesFinal = hasMoreTmdbPages && pageItems.length === pageSize
+        ? Math.ceil(collected.length / pageSize) + 1
+        : Math.ceil(collected.length / pageSize);
 
-      // Calcul du total_pages local
-      const localTotalPages = Math.ceil(collected.length / pageSize);
-      let totalPagesFinal = localTotalPages;
-      if (hasMoreTmdbPages && pageItems.length === pageSize) {
-        totalPagesFinal = localTotalPages + 1;
-      }
-
-      return res.json({
-        page: numericPage,
-        total_pages: totalPagesFinal,
-        results: pageItems,
-      });
+      return res.json({ page: numericPage, total_pages: totalPagesFinal, results: pageItems });
 
     } catch (error) {
-      console.error('Erreur discoverSeries :', error.message);
-      if (error.response) {
-        console.error('TMDB status:', error.response.status);
-        console.error('TMDB data:', error.response.data);
-      }
+      console.error('Erreur discoverSeries:', error.message);
       return res.status(500).json({ error: 'Erreur lors de la découverte de séries' });
     }
   },
+
 };
