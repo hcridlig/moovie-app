@@ -1,28 +1,65 @@
+// src/pages/SerieDetailPage.js
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getSerieById } from '../utils/api';
+import { getSerieById, getTVStreamingPlatforms } from '../utils/api';
 import { FaStar } from 'react-icons/fa';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 
 function SerieDetailPage() {
   const { id } = useParams();
-  const { theme } = useContext(SettingsContext);
+  const { theme, country } = useContext(SettingsContext);
   const { t } = useTranslation();
   const [serie, setSerie] = useState(null);
+  const [platforms, setPlatforms] = useState([]);
   const castScrollRef = useRef(null);
+
+  const providerUrls = {
+    Netflix: (serie) => `https://www.netflix.com/search?q=${encodeURIComponent(serie.title)}`,
+    'Amazon Prime Video': (serie) => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(serie.title)}`,
+    Hulu: (serie) => `https://www.hulu.com/search?q=${encodeURIComponent(serie.title)}`,
+    'Disney Plus': (serie) => `https://www.disneyplus.com/search?q=${encodeURIComponent(serie.title)}`,
+    Max: (serie) => `https://play.max.com/search/result?q=${encodeURIComponent(serie.title)}`,
+    'Apple TV+': (serie) => `https://tv.apple.com/search?term=${encodeURIComponent(serie.title)}`,
+    'Canal Plus': (serie) => `https://www.canalplus.com/series/${encodeURIComponent(serie.title)}`,
+  };
+
+  const providerLoginUrls = {
+    Netflix: 'https://www.netflix.com/login',
+    'Amazon Prime Video': 'https://www.primevideo.com/ap/signin',
+    Hulu: 'https://secure.hulu.com/account',
+    'Disney Plus': 'https://www.disneyplus.com/login',
+    Max: 'https://auth.max.com/login',
+    'Apple TV+': 'https://tv.apple.com/login',
+    'Canal Plus': 'https://www.canalplus.com/login',
+  };
+
+  const handleProviderClick = (provider, event) => {
+    event.preventDefault();
+    const isConnected = window.confirm(
+      `Êtes-vous connecté à ${provider.provider_name} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.`
+    );
+    if (isConnected) {
+      window.open(providerUrls[provider.provider_name](serie), "_blank");
+    } else {
+      window.open(providerLoginUrls[provider.provider_name] || providerUrls[provider.provider_name](serie), "_blank");
+    }
+  };
 
   useEffect(() => {
     const fetchSerieDetail = async () => {
       try {
         const serieData = await getSerieById(id);
         setSerie(serieData);
+        const selectedCountry = country || 'FR';
+        const platformsData = await getTVStreamingPlatforms(id, selectedCountry);
+        setPlatforms(platformsData);
       } catch (error) {
         console.error("Erreur lors de la récupération des détails de la série :", error);
       }
     };
     fetchSerieDetail();
-  }, [id]);
+  }, [id, country]);
 
   const scrollLeftCast = () => {
     castScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -35,27 +72,15 @@ function SerieDetailPage() {
   if (!serie) return <p className="text-center text-xl">{t('loading')}</p>;
 
   return (
-    <div
-      className={`container mx-auto px-4 py-8 mt-12 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
-      } rounded-lg shadow-lg`}
-    >
-      {/* Section principale */}
+    <div className={`container mx-auto px-4 py-8 mt-12 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
       <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
-        <img
-          src={serie.posterUrl}
-          alt={serie.title}
-          className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0"
-        />
+        <img src={serie.posterUrl} alt={serie.title} className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0" />
         <div className="md:flex-1 space-y-4">
           <h1 className="text-4xl font-bold mb-2">{serie.title}</h1>
           <div className="flex items-center space-x-2 mb-4">
             <div className="relative flex items-center justify-center text-white font-bold">
               <FaStar className="text-yellow-500 w-10 h-10" />
-              <span
-                className="absolute text-sm font-semibold"
-                style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-              >
+              <span className="absolute text-sm font-semibold" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
                 {serie.vote_average.toFixed(1)}
               </span>
             </div>
@@ -74,7 +99,7 @@ function SerieDetailPage() {
           )}
           {serie.genres && (
             <p className="text-gray-700 dark:text-gray-300 mb-2">
-              <strong>{t('genres')}:</strong> {serie.genres.map((g) => g.name).join(', ')}
+              <strong>{t('genres')}:</strong> {serie.genres.map(g => g.name).join(', ')}
             </p>
           )}
           <p className="text-gray-700 dark:text-gray-300 mb-2">
@@ -83,38 +108,46 @@ function SerieDetailPage() {
           <p className="text-gray-700 dark:text-gray-300 mb-2">
             <strong>{t('episodes')}:</strong> {serie.number_of_episodes}
           </p>
+          <div className="my-4">
+            <h3 className="text-lg font-semibold mb-2">{t('availableOn')}</h3>
+            {platforms && platforms.length > 0 ? (
+              <div className="flex space-x-4">
+                {platforms.map((provider) => (
+                  <button
+                    key={provider.provider_id}
+                    onClick={(e) => handleProviderClick(provider, e)}
+                    className="block bg-transparent border-none p-0 cursor-pointer"
+                    aria-label={provider.provider_name}
+                  >
+                    <img
+                      src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                      alt={provider.provider_name}
+                      title={provider.provider_name}
+                      className="h-12 w-auto rounded-md shadow-md"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-700 dark:text-gray-300">
+                {t('notAvailableInCountry') || 'Non disponible dans ce pays'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Casting en défilement horizontal */}
       {serie.credits && serie.credits.cast && serie.credits.cast.length > 0 && (
         <>
           <h2 className="text-3xl font-semibold text-center mt-8 mb-4">{t('mainCast')}</h2>
           <div className="relative">
-            <button
-              onClick={scrollLeftCast}
-              className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-                theme === 'dark'
-                  ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-                  : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-              }`}
-            >
+            <button onClick={scrollLeftCast} className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
               &lt;
             </button>
             <div ref={castScrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
               {serie.credits.cast.slice(0, 12).map((actor) => (
-                <div
-                  key={actor.id}
-                  className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${
-                    theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
-                  }`}
-                >
+                <div key={actor.id} className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
                   <img
-                    src={
-                      actor.profile_path
-                        ? `https://image.tmdb.org/t/p/w185${actor.profile_path}`
-                        : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'
-                    }
+                    src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
                     alt={actor.name}
                     className="w-full h-36 object-cover rounded-lg mb-2"
                   />
@@ -125,14 +158,7 @@ function SerieDetailPage() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={scrollRightCast}
-              className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-                theme === 'dark'
-                  ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-                  : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-              }`}
-            >
+            <button onClick={scrollRightCast} className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
               &gt;
             </button>
           </div>

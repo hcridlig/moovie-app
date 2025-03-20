@@ -1,3 +1,4 @@
+// src/components/SerieCard.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,7 +25,7 @@ function SerieCard({ serie, index }) {
             ? serie.posterUrl
             : 'https://media.istockphoto.com/id/1642381175/fr/vectoriel/cin%C3%A9ma.jpg?s=612x612&w=0&k=20&c=obVOGQkJifaPk9lSf1-YrrmNQAQnHbKSCQ1JvnpDO00='
         }
-        alt={serie.title}
+        alt={serie.title || serie.name}
         className="w-full h-64 object-cover"
       />
       <div className="p-2">
@@ -36,7 +37,7 @@ function SerieCard({ serie, index }) {
             WebkitBoxOrient: 'vertical',
           }}
         >
-          {serie.title}
+          {serie.title || serie.name}
         </h3>
       </div>
     </div>

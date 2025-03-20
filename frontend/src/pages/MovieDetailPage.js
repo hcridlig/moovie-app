@@ -19,7 +19,9 @@ function MovieDetailPage() {
     'Amazon Prime Video': (movie) => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(movie.title)}`,
     Hulu: (movie) => `https://www.hulu.com/search?q=${encodeURIComponent(movie.title)}`,
     'Disney Plus': (movie) => `https://www.disneyplus.com/search?q=${encodeURIComponent(movie.title)}`,
-    'HBO Max': (movie) => `https://www.hbomax.com/search?q=${encodeURIComponent(movie.title)}`,
+    Max: (movie) => `https://play.max.com/search/result?q=${encodeURIComponent(movie.title)}`,
+    'Apple TV+': (movie) => `https://tv.apple.com/search?term=${encodeURIComponent(movie.title)}`,
+    'Canal Plus': (movie) => `https://www.canalplus.com/cinema/${encodeURIComponent(movie.title)}`,
   };
 
   const providerLoginUrls = {
@@ -27,7 +29,9 @@ function MovieDetailPage() {
     'Amazon Prime Video': 'https://www.primevideo.com/ap/signin',
     Hulu: 'https://secure.hulu.com/account',
     'Disney Plus': 'https://www.disneyplus.com/login',
-    'HBO Max': 'https://www.hbomax.com/login',
+    Max: 'https://auth.max.com/login',
+    'Apple TV+': 'https://tv.apple.com/login',
+    'Canal Plus': 'https://www.canalplus.com/login',
   };
 
   const handleProviderClick = (provider, event) => {
@@ -47,6 +51,7 @@ function MovieDetailPage() {
       try {
         const movieData = await getMovieById(id);
         setMovie(movieData);
+        // Utilisation du pays sélectionné (ou 'FR' par défaut)
         const selectedCountry = country || 'FR';
         const platformData = await getStreamingPlatforms(id, selectedCountry);
         setPlatforms(platformData);
@@ -65,13 +70,13 @@ function MovieDetailPage() {
     scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
   };
 
-  // Heuristique simple pour déterminer si un film est en salle (si sa date de sortie est proche de la date actuelle)
+  // Heuristique simple pour déterminer si le film est en salle
   const isNowPlaying = () => {
     if (!movie || !movie.release_date) return false;
     const releaseDate = new Date(movie.release_date);
     const now = new Date();
     const diffDays = (now - releaseDate) / (1000 * 60 * 60 * 24);
-    return diffDays >= 0 && diffDays < 30; // par exemple, sorti il y a moins de 30 jours
+    return diffDays >= 0 && diffDays < 30;
   };
 
   if (!movie) return <p className="text-center text-xl">{t('loading')}</p>;
@@ -92,11 +97,21 @@ function MovieDetailPage() {
             <span className="text-gray-700 dark:text-gray-300 text-sm">{movie.vote_count} votes</span>
           </div>
           <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">{movie.overview}</p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>{t('releaseDate')}:</strong> {movie.release_date}</p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>{t('runtime')}:</strong> {movie.runtime} {t('minutes')}</p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>{t('genres')}:</strong> {movie.genres.map(g => g.name).join(', ')}</p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>{t('budget')}:</strong> ${movie.budget.toLocaleString()}</p>
-          <p className="text-gray-700 dark:text-gray-300 mb-2"><strong>{t('revenue')}:</strong> ${movie.revenue.toLocaleString()}</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <strong>{t('releaseDate')}:</strong> {movie.release_date}
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <strong>{t('runtime')}:</strong> {movie.runtime} {t('minutes')}
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <strong>{t('genres')}:</strong> {movie.genres.map(g => g.name).join(', ')}
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <strong>{t('budget')}:</strong> ${movie.budget.toLocaleString()}
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <strong>{t('revenue')}:</strong> ${movie.revenue.toLocaleString()}
+          </p>
           <div className="my-4">
             <h3 className="text-lg font-semibold mb-2">{t('availableOn')}</h3>
             {platforms && platforms.length > 0 ? (
@@ -108,7 +123,12 @@ function MovieDetailPage() {
                     className="block bg-transparent border-none p-0 cursor-pointer"
                     aria-label={provider.provider_name}
                   >
-                    <img src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`} alt={provider.provider_name} title={provider.provider_name} className="h-12 w-auto rounded-md shadow-md" />
+                    <img
+                      src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
+                      alt={provider.provider_name}
+                      title={provider.provider_name}
+                      className="h-12 w-auto rounded-md shadow-md"
+                    />
                   </button>
                 ))}
               </div>
@@ -122,17 +142,27 @@ function MovieDetailPage() {
       </div>
       <h2 className="text-3xl font-semibold text-center mt-8 mb-4">{t('mainCast')}</h2>
       <div className="relative">
-        <button onClick={scrollLeft} className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>&lt;</button>
+        <button onClick={scrollLeft} className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
+          &lt;
+        </button>
         <div ref={scrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
           {movie.credits?.cast.slice(0, 12).map((actor) => (
             <div key={actor.id} className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
-              <img src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'} alt={actor.name} className="w-full h-36 object-cover rounded-lg mb-2" />
+              <img
+                src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
+                alt={actor.name}
+                className="w-full h-36 object-cover rounded-lg mb-2"
+              />
               <p className="font-semibold text-sm truncate">{actor.name}</p>
-              <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{actor.character}</p>
+              <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {actor.character}
+              </p>
             </div>
           ))}
         </div>
-        <button onClick={scrollRight} className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>&gt;</button>
+        <button onClick={scrollRight} className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
+          &gt;
+        </button>
       </div>
     </div>
   );

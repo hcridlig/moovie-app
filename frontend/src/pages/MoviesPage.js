@@ -17,8 +17,19 @@ function MoviesPage() {
   const [genres, setGenres] = useState([]);
   const [platforms, setPlatforms] = useState([]);
 
-  // Filtres
+  // On utilise deux états pour les filtres :
+  // "filters" correspond aux valeurs saisies dans le formulaire
+  // "appliedFilters" correspond aux filtres effectivement appliqués lors de la recherche
   const [filters, setFilters] = useState({
+    genre: '',
+    platform: '',
+    minRating: '',
+    releaseYear: '',
+    minDuration: '',
+    maxDuration: '',
+    sortBy: ''
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
     genre: '',
     platform: '',
     minRating: '',
@@ -33,11 +44,10 @@ function MoviesPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   /**
-   * Fonction de recherche : mémorisée avec useCallback
-   * pour éviter de la recréer à chaque rendu.
+   * Fonction de recherche, déclenchée uniquement quand les filtres appliqués changent
    */
   const handleSearch = useCallback(
-    async (newPage = 1, currentFilters = filters, currentCountry = country) => {
+    async (newPage = 1, currentFilters = appliedFilters, currentCountry = country) => {
       setLoading(true);
       try {
         const minRatingNum = currentFilters.minRating ? Number(currentFilters.minRating) : 0;
@@ -56,16 +66,15 @@ function MoviesPage() {
         setLoading(false);
       }
     },
-    [filters, country]
+    [appliedFilters, country]
   );
 
-  /**
-   * Chargement initial des genres, plateformes et films (avec filtres par défaut)
-   */
+  // Chargement initial des données (genres, plateformes et recherche initiale)
   useEffect(() => {
     const fetchData = async () => {
       try {
         const genreData = await getGenres();
+        // Ajout du genre "Manga" si non présent
         if (!genreData.find((g) => g.name.toLowerCase() === 'manga')) {
           genreData.push({ id: 9999, name: 'Manga' });
         }
@@ -74,27 +83,17 @@ function MoviesPage() {
         const platformData = await getPlatforms(country);
         setPlatforms(platformData);
 
-        // Recherche initiale
-        await handleSearch(1, filters, country);
+        // Recherche initiale avec les filtres appliqués (vides au départ)
+        await handleSearch(1, appliedFilters, country);
       } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
       }
     };
     fetchData();
-    // On inclut ici country, filters et handleSearch pour respecter ESLint
-  }, [country, filters, handleSearch]);
+  }, [country, appliedFilters, handleSearch]);
 
   /**
-   * Quand le tri "sortBy" change, on relance la recherche (page = 1).
-   */
-  useEffect(() => {
-    handleSearch(1, filters, country);
-    // On inclut country, filters et handleSearch
-  }, [filters.sortBy, country, filters, handleSearch]);
-
-  /**
-   * Gère le changement des filtres (sauf sortBy qui est pris en compte
-   * automatiquement dans l'effect ci-dessus).
+   * Mise à jour des filtres temporaires lors de la saisie
    */
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -102,9 +101,11 @@ function MoviesPage() {
   };
 
   /**
-   * Lorsque l'utilisateur clique sur "Rechercher", on applique les filtres courants
+   * Au clic sur "Rechercher", on applique les filtres en les transférant dans appliedFilters
+   * et on déclenche la recherche.
    */
   const handleApplyFilters = () => {
+    setAppliedFilters(filters);
     handleSearch(1, filters, country);
   };
 
@@ -122,6 +123,7 @@ function MoviesPage() {
       sortBy: ''
     };
     setFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
     handleSearch(1, defaultFilters, country);
   };
 
@@ -130,12 +132,12 @@ function MoviesPage() {
    */
   const handlePrevPage = () => {
     if (page > 1) {
-      handleSearch(page - 1, filters, country);
+      handleSearch(page - 1, appliedFilters, country);
     }
   };
   const handleNextPage = () => {
     if (page < totalPages) {
-      handleSearch(page + 1, filters, country);
+      handleSearch(page + 1, appliedFilters, country);
     }
   };
 
@@ -172,20 +174,12 @@ function MoviesPage() {
   };
 
   return (
-    <div
-      className={`container mx-auto px-4 py-8 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
-      }`}
-    >
+    <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-6">{t('movieFilters')}</h1>
 
       <div className="flex space-x-8">
         {/* Barre latérale des filtres */}
-        <div
-          className={`w-1/4 p-6 rounded-lg shadow-md h-fit ${
-            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-          }`}
-        >
+        <div className={`w-1/4 p-6 rounded-lg shadow-md h-fit ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
           {/* Filtre Genre */}
           <div className="mb-4">
             <label className="block font-semibold mb-1 dark:text-gray-200">{t('genre')}</label>
@@ -193,9 +187,7 @@ function MoviesPage() {
               name="genre"
               value={filters.genre}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
               <option value="">{t('allGenres')}</option>
               {genres.map((g) => (
@@ -213,9 +205,7 @@ function MoviesPage() {
               name="platform"
               value={filters.platform}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
               <option value="">{t('allPlatforms')}</option>
               <option value="cinema">{t('currentlyInTheaters') || 'Actuellement au cinéma'}</option>
@@ -237,9 +227,7 @@ function MoviesPage() {
               onChange={handleFilterChange}
               min="0"
               max="10"
-              className={`w-full p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             />
           </div>
 
@@ -253,9 +241,7 @@ function MoviesPage() {
               onChange={handleFilterChange}
               min="1900"
               max={new Date().getFullYear()}
-              className={`w-full p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             />
           </div>
 
@@ -269,9 +255,7 @@ function MoviesPage() {
                 value={filters.minDuration}
                 onChange={handleFilterChange}
                 placeholder={t('min')}
-                className={`w-1/2 p-2 border rounded ${
-                  theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-                }`}
+                className={`w-1/2 p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
               />
               <input
                 type="number"
@@ -279,9 +263,7 @@ function MoviesPage() {
                 value={filters.maxDuration}
                 onChange={handleFilterChange}
                 placeholder={t('max')}
-                className={`w-1/2 p-2 border rounded ${
-                  theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-                }`}
+                className={`w-1/2 p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
               />
             </div>
           </div>
@@ -303,16 +285,13 @@ function MoviesPage() {
 
         {/* Zone principale : tri + liste de films */}
         <div className="flex-1">
-          {/* Tri */}
           <div className="flex items-center justify-end mb-4">
             <label className="mr-2 font-semibold">Trier par :</label>
             <select
               name="sortBy"
               value={filters.sortBy}
               onChange={handleFilterChange}
-              className={`p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
               <option value="">Pertinence (défaut)</option>
               <option value="primary_release_date.asc">Date de sortie : Croissant</option>
@@ -324,7 +303,6 @@ function MoviesPage() {
             </select>
           </div>
 
-          {/* Grille des films ou message "Aucun film" */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, idx) => (
@@ -344,7 +322,6 @@ function MoviesPage() {
             </div>
           )}
 
-          {/* Pagination si des films sont trouvés */}
           {movies.length > 0 && (
             <div className="flex items-center justify-center space-x-2 my-6">
               <button
@@ -362,7 +339,7 @@ function MoviesPage() {
                 ) : (
                   <button
                     key={p}
-                    onClick={() => handleSearch(p, filters, country)}
+                    onClick={() => handleSearch(p, appliedFilters, country)}
                     className={`px-3 py-1 rounded border ${
                       p === page
                         ? 'bg-indigo-600 text-white'

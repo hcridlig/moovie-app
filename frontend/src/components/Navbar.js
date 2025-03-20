@@ -4,7 +4,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
-import { getSearchedMovies } from '../utils/api';
+// Importez la fonction de recherche multi
+import { getSearchedMulti } from '../utils/api';
 
 function Navbar() {
   const { t } = useTranslation();
@@ -22,11 +23,11 @@ function Navbar() {
     setSuggestions([]);
   }, [location.pathname]);
 
-  // Utilisation d'un debounce pour récupérer les suggestions
+  // Utilisation d'un debounce pour récupérer les suggestions avec la recherche multi
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim() !== '') {
-        getSearchedMovies(searchQuery)
+        getSearchedMulti(searchQuery)
           .then(data => {
             // On limite par exemple à 5 suggestions
             setSuggestions(data.results.slice(0, 5));
@@ -37,12 +38,13 @@ function Navbar() {
       } else {
         setSuggestions([]);
       }
-    }, 300); // Délai de 300 ms
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
+      // Naviguer vers la page de recherche multi (à implémenter dans votre route /search)
       navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
       // Réinitialise la barre de recherche et les suggestions après la recherche
       setSearchQuery('');
@@ -50,8 +52,15 @@ function Navbar() {
     }
   };
 
-  const handleSuggestionClick = (movie) => {
-    navigate(`/movie/${movie.id}`);
+  // Mise à jour de la fonction pour gérer le clic sur une suggestion
+  const handleSuggestionClick = (item) => {
+    // Si le résultat est un film, naviguer vers /movie/id
+    // Si c'est une série, vers /series/id
+    if (item.media_type === 'movie') {
+      navigate(`/movie/${item.id}`);
+    } else if (item.media_type === 'tv') {
+      navigate(`/series/${item.id}`);
+    }
     setSearchQuery('');
     setSuggestions([]);
   };
@@ -97,13 +106,13 @@ function Navbar() {
           {/* Suggestions */}
           {suggestions.length > 0 && (
             <div className={`absolute left-0 right-0 mt-1 z-50 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded shadow-lg`}>
-              {suggestions.map(movie => (
+              {suggestions.map(item => (
                 <div
-                  key={movie.id}
-                  onClick={() => handleSuggestionClick(movie)}
+                  key={item.id}
+                  onClick={() => handleSuggestionClick(item)}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 >
-                  {movie.title}
+                  {item.title} <span className="text-xs text-gray-500">{item.media_type === 'movie' ? '(Film)' : '(Série)'}</span>
                 </div>
               ))}
             </div>

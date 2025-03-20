@@ -89,12 +89,9 @@ function SeriesPage() {
     const { name, value } = e.target;
     if (name === 'sortBy') {
       setSortBy(value);
-      handleSearch(1, appliedFilters, value, country); // Apply sort immediately
+      //handleSearch(1, appliedFilters, value, country); // Apply sort immediately
     } else {
-      const newFilters = { ...filters, [name]: value };
-      setFilters(newFilters);
-      setAppliedFilters(newFilters); 
-      handleSearch(1, newFilters, sortBy, country); // Perform search immediately
+      setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
   
@@ -177,7 +174,7 @@ function SeriesPage() {
         <div
           className={`w-1/4 p-6 rounded-lg shadow-md ${
             theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-          } max-h-[50vh] overflow-y-auto`}
+          } max-h-[49vh] overflow-y-auto`}
         >
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('genre')}</label>
@@ -275,8 +272,8 @@ function SeriesPage() {
               }`}
             >
               <option value="">Pertinence (défaut)</option>
-              <option value="first_air_date.asc">Date de première diffusion : Croissant</option>
-              <option value="first_air_date.desc">Date de première diffusion : Décroissant</option>
+              <option value="first_air_date.asc">Date de sortie : Croissant</option>
+              <option value="first_air_date.desc">Date de sortie : Décroissant</option>
               <option value="vote_average.asc">Note : Croissante</option>
               <option value="vote_average.desc">Note : Décroissante</option>
             </select>
