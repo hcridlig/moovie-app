@@ -71,47 +71,49 @@ const userController = {
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la mise à jour du mot de passe.' });
     }
-  }
-};
+  },
 
-// Ajoutez les fonctions pour gérer les préférences directement dans l'objet userController
-userController.addPreference = async (req, res) => {
-  const { movieId, opinion, title, image } = req.body; // on attend title et image aussi
-  const userId = req.user.user_id;
-  try {
-    let pref = await Preference.findOne({ where: { user_id: userId, movie_id: movieId } });
-    if (pref) {
-      if (pref.preference_type !== opinion) {
-        pref.preference_type = opinion;
-        pref.title = title;
-        pref.image = image;
-        await pref.save();
-        return res.json({ message: 'Préférence mise à jour', preference: pref });
+  // Ajoutez les fonctions pour gérer les préférences directement dans l'objet userController
+  addPreference: async (req, res) => {
+    const { movieId, liked } = req.body; // on attend title et image aussi
+    const authHeader = req.header('Authorization');
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      let preference = await Preference.findOne({ where: { user_id: decoded.id, movie_id: movieId } });
+      
+      if (preference) {
+        preference.liked = liked;
+        await preference.save();
+      } else {
+          preference = await UserPreference.create({ userId, movieId, liked });
       }
-      return res.json({ message: 'Préférence déjà définie', preference: pref });
+  
+      res.status(200).json({ message: "Preference saved", preference });
+    } catch (error) {
+      res.status(500).json({ message: "Error saving preference", error });
     }
-    pref = await Preference.create({
-      user_id: userId,
-      movie_id: movieId,
-      preference_type: opinion,
-      title,
-      image,
-    });
-    res.status(201).json({ message: 'Préférence créée', preference: pref });
-  } catch (error) {
-    console.error('Erreur lors de l’ajout de la préférence', error);
-    res.status(500).json({ error: 'Erreur interne du serveur' });
-  }
-};
+  },
 
-userController.getPreferences = async (req, res) => {
-  const userId = req.user.user_id;
-  try {
-    const preferences = await Preference.findAll({ where: { user_id: userId } });
-    res.json(preferences);
-  } catch (error) {
-    console.error('Erreur lors de la récupération des préférences', error);
-    res.status(500).json({ error: 'Erreur interne du serveur' });
+  getPreferences: async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Accès non autorisé' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET); // Ensure JWT_SECRET is set in env variables
+        const userId = decoded.id;
+
+        const preferences = await Preference.findAll({ where: { user_id: userId } });
+        res.json(preferences);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des préférences', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
   }
 };
 
