@@ -76,7 +76,7 @@ const userController = {
   // Ajoutez les fonctions pour gérer les préférences directement dans l'objet userController
   addPreference: async (req, res) => {
     try {
-      const { movieId, liked } = req.body; 
+      const { movieId, liked, mediaType } = req.body; 
       // Si vous envoyez aussi media_type, title, image, il faudra éventuellement les extraire ici,
       // mais seulement si votre table "preferences" a des colonnes correspondantes.
 
@@ -105,7 +105,8 @@ const userController = {
         preference = await Preference.create({
           user_id: userId,
           movie_id: movieId,
-          liked // true ou false
+          liked, // true ou false
+          media_type: mediaType // 'movie' ou 'serie
         });
       }
 
