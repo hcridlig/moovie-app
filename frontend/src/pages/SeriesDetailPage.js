@@ -1,37 +1,46 @@
-// src/pages/SerieDetailPage.js
+// SeriesDetailPage.js
+
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getSerieById, getTVStreamingPlatforms } from '../utils/api';
-import { FaStar } from 'react-icons/fa';
+import { getSerieById, getTVStreamingPlatforms, addPreference } from '../utils/api';
+import { FaStar, FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { SettingsContext } from '../contexts/SettingsContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 function SerieDetailPage() {
   const { id } = useParams();
   const { theme, country } = useContext(SettingsContext);
+  const { isAuthenticated } = useContext(AuthContext);
   const { t } = useTranslation();
+
   const [serie, setSerie] = useState(null);
   const [platforms, setPlatforms] = useState([]);
+  const [userOpinion, setUserOpinion] = useState(null);
   const castScrollRef = useRef(null);
 
   const providerUrls = {
     Netflix: (serie) => `https://www.netflix.com/search?q=${encodeURIComponent(serie.title)}`,
     'Amazon Prime Video': (serie) => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(serie.title)}`,
-    Hulu: (serie) => `https://www.hulu.com/search?q=${encodeURIComponent(serie.title)}`,
     'Disney Plus': (serie) => `https://www.disneyplus.com/search?q=${encodeURIComponent(serie.title)}`,
     Max: (serie) => `https://play.max.com/search/result?q=${encodeURIComponent(serie.title)}`,
     'Apple TV+': (serie) => `https://tv.apple.com/search?term=${encodeURIComponent(serie.title)}`,
-    'Canal Plus': (serie) => `https://www.canalplus.com/series/${encodeURIComponent(serie.title)}`,
+    'Canal Plus': (serie) => `https://www.canalplus.com/login`,
+    Crunchyroll: (serie) => `https://www.crunchyroll.com/fr/search?q=${encodeURIComponent(serie.title)}`,
+    'Paramount Plus': (serie) => `https://www.paramountplus.com/shows/${encodeURIComponent(serie.title)}`,
+    'TF1+': (serie) => `https://www.tf1.fr/programmes-tv/series?q=${encodeURIComponent(serie.title)}`,
   };
 
   const providerLoginUrls = {
     Netflix: 'https://www.netflix.com/login',
     'Amazon Prime Video': 'https://www.primevideo.com/ap/signin',
-    Hulu: 'https://secure.hulu.com/account',
     'Disney Plus': 'https://www.disneyplus.com/login',
     Max: 'https://auth.max.com/login',
     'Apple TV+': 'https://tv.apple.com/login',
     'Canal Plus': 'https://www.canalplus.com/login',
+    Crunchyroll: `https://sso.crunchyroll.com/fr/login`,
+    'Paramount Plus': `https://www.paramountplus.com/fr/account/signin/`,
+    'TF1+': `https://www.tf1.fr/compte/connexion`,
   };
 
   const handleProviderClick = (provider, event) => {
@@ -42,7 +51,29 @@ function SerieDetailPage() {
     if (isConnected) {
       window.open(providerUrls[provider.provider_name](serie), "_blank");
     } else {
-      window.open(providerLoginUrls[provider.provider_name] || providerUrls[provider.provider_name](serie), "_blank");
+      window.open(
+        providerLoginUrls[provider.provider_name] ||
+          providerUrls[provider.provider_name](serie),
+        "_blank"
+      );
+    }
+  };
+
+  const handleOpinion = async (opinion) => {
+    if (!isAuthenticated) {
+      alert("Veuillez vous connecter pour noter la série.");
+      return;
+    }
+    if (userOpinion === opinion) return;
+    try {
+      await addPreference({
+        movieId: Number(id),
+        liked: (opinion === 'like'),
+        media_type: 'series'
+      });
+      setUserOpinion(opinion);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la série aux contenus visionnés :", error);
     }
   };
 
@@ -72,7 +103,7 @@ function SerieDetailPage() {
   if (!serie) return <p className="text-center text-xl">{t('loading')}</p>;
 
   return (
-    <div className={`container mx-auto px-4 py-8 mt-12 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
+    <div className={`container mx-auto px-4 py-8 mt-12 ${theme==='dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
       <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img src={serie.posterUrl} alt={serie.title} className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0" />
         <div className="md:flex-1 space-y-4">
@@ -108,6 +139,30 @@ function SerieDetailPage() {
           <p className="text-gray-700 dark:text-gray-300 mb-2">
             <strong>{t('episodes')}:</strong> {serie.number_of_episodes}
           </p>
+          {isAuthenticated && (
+            <div className="flex items-center space-x-4 mt-4">
+              <button
+                onClick={() => handleOpinion('like')}
+                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
+                  userOpinion === 'like'
+                    ? 'bg-green-500 bg-opacity-70 text-white'
+                    : 'bg-green-500 bg-opacity-20 text-green-700'
+                }`}
+              >
+                <FaThumbsUp size={20} />
+              </button>
+              <button
+                onClick={() => handleOpinion('dislike')}
+                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
+                  userOpinion === 'dislike'
+                    ? 'bg-red-500 bg-opacity-70 text-white'
+                    : 'bg-red-500 bg-opacity-20 text-red-700'
+                }`}
+              >
+                <FaThumbsDown size={20} />
+              </button>
+            </div>
+          )}
           <div className="my-4">
             <h3 className="text-lg font-semibold mb-2">{t('availableOn')}</h3>
             {platforms && platforms.length > 0 ? (
@@ -140,25 +195,44 @@ function SerieDetailPage() {
         <>
           <h2 className="text-3xl font-semibold text-center mt-8 mb-4">{t('mainCast')}</h2>
           <div className="relative">
-            <button onClick={scrollLeftCast} className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
+            <button
+              onClick={scrollLeftCast}
+              className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
+                theme==='dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
+              }`}
+            >
               &lt;
             </button>
             <div ref={castScrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
               {serie.credits.cast.slice(0, 12).map((actor) => (
-                <div key={actor.id} className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                <div
+                  key={actor.id}
+                  className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${
+                    theme==='dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
+                  }`}
+                >
                   <img
-                    src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
+                    src={
+                      actor.profile_path
+                        ? `https://image.tmdb.org/t/p/w185${actor.profile_path}`
+                        : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'
+                    }
                     alt={actor.name}
                     className="w-full h-36 object-cover rounded-lg mb-2"
                   />
                   <p className="font-semibold text-sm truncate">{actor.name}</p>
-                  <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p className={`text-xs truncate ${theme==='dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     {actor.character}
                   </p>
                 </div>
               ))}
             </div>
-            <button onClick={scrollRightCast} className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}>
+            <button
+              onClick={scrollRightCast}
+              className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
+                theme==='dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
+              }`}
+            >
               &gt;
             </button>
           </div>

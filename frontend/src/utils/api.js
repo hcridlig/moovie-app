@@ -425,8 +425,50 @@ export const getTvGenres = async (language = 'fr-FR') => {
 };
 
 /**
- * Exemple d'implémentation de getWatchedItems
+ * Récupère la liste brute des préférences (movie_id, liked, media_type, etc.)
  */
-export const getWatchedItems = async () => {
-  return [];
+export const getUserPreferences = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
+  
+  const response = await fetch(`${apiUrl}/users/me/preferences`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Erreur lors de la récupération des contenus visionnés.');
+  }
+  
+  return await response.json();
+};
+
+/**
+ * Ajoute ou met à jour la préférence (like/dislike) d'un film ou d'une série
+ */
+export const addPreference = async ({ movieId, liked, media_type }) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
+  
+  const response = await fetch(`${apiUrl}/users/me/preferences`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      movieId,
+      liked,
+      media_type
+    }),
+  });
+  
+  if (!response.ok) {
+    throw new Error("Erreur lors de l'enregistrement de la préférence.");
+  }
+  
+  return await response.json();
 };
