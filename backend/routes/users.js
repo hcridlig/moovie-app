@@ -12,19 +12,14 @@ router.get('/me', authMiddleware, userController.getProfile);
 // Mettre à jour les informations de l'utilisateur
 router.put('/me', authMiddleware, userController.updateProfile);
 
-// Ajouter un film/série aux éléments vus
-router.post('/me/watched', authMiddleware, userController.addWatchedItem);
-
-// Récupérer les éléments vus par l'utilisateur
-router.get('/me/watched', authMiddleware, userController.getWatchedItems);
-
-// Récupérer les informations de l'utilisateur connecté
-router.get('/me', authMiddleware, userController.getProfile);
-
-// Mettre à jour les informations de l'utilisateur
-router.put('/me', authMiddleware, userController.updateProfile);
-
 // Changer le mot de passe
 router.put('/me/password', authMiddleware, userController.changePassword);
+
+
+// Ajouter ou mettre à jour la préférence d’un film
+router.post('/me/preferences', authMiddleware, userController.addPreference);
+
+// Récupérer les préférences de l’utilisateur (films visionnés avec opinion)
+router.get('/me/preferences', authMiddleware, userController.getPreferences);
 
 module.exports = router;

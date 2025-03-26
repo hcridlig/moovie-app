@@ -1,5 +1,6 @@
+// Preference.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db'); // Centralized Sequelize instance
+const sequelize = require('../config/db');
 
 const Preference = sequelize.define(
   'preference',
@@ -20,6 +21,18 @@ const Preference = sequelize.define(
     preference_type: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    media_type: {  // Nouveau champ pour différencier film et série
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {
