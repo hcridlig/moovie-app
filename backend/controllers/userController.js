@@ -75,27 +75,47 @@ const userController = {
 
   // Ajoutez les fonctions pour gérer les préférences directement dans l'objet userController
   addPreference: async (req, res) => {
-    const { movieId, liked } = req.body; // on attend title et image aussi
-    const authHeader = req.header('Authorization');
-    const token = authHeader && authHeader.split(' ')[1];
-    
     try {
+      const { movieId, liked } = req.body; 
+      // Si vous envoyez aussi media_type, title, image, il faudra éventuellement les extraire ici,
+      // mais seulement si votre table "preferences" a des colonnes correspondantes.
+
+      // Récupération du token JWT
+      const authHeader = req.header('Authorization');
+      if (!authHeader) {
+        return res.status(401).json({ message: 'Token manquant' });
+      }
+      const token = authHeader.split(' ')[1];
+
+      // Décodage du token pour avoir l'ID utilisateur
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      let preference = await Preference.findOne({ where: { user_id: decoded.id, movie_id: movieId } });
-      
+      const userId = decoded.id;
+
+      // Vérifier si la préférence existe déjà
+      let preference = await Preference.findOne({ 
+        where: { user_id: userId, movie_id: movieId }
+      });
+
       if (preference) {
-        preference.liked = liked;
+        // Mettre à jour la préférence existante
+        preference.liked = liked; // liked doit être un booléen (true/false)
         await preference.save();
       } else {
-          preference = await UserPreference.create({ userId, movieId, liked });
+        // Créer une nouvelle préférence
+        preference = await Preference.create({
+          user_id: userId,
+          movie_id: movieId,
+          liked // true ou false
+        });
       }
-  
-      res.status(200).json({ message: "Preference saved", preference });
+
+      return res.status(200).json({ message: 'Preference saved', preference });
     } catch (error) {
-      res.status(500).json({ message: "Error saving preference", error });
+      console.error('Erreur lors de addPreference:', error);
+      return res.status(500).json({ message: 'Error saving preference', error });
     }
   },
-
+  
   getPreferences: async (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

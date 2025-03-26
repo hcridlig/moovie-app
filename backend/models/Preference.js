@@ -22,6 +22,10 @@ const Preference = sequelize.define(
       type: DataTypes.BOOLEAN,
       allowNull: false,
     },
+    media_type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    }
   },
   {
     tableName: 'preferences',
