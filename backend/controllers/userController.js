@@ -79,6 +79,7 @@ const userController = {
     const authHeader = req.header('Authorization');
     const token = authHeader && authHeader.split(' ')[1];
     
+    
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       let preference = await Preference.findOne({ where: { user_id: decoded.id, movie_id: movieId } });
@@ -87,7 +88,7 @@ const userController = {
         preference.liked = liked;
         await preference.save();
       } else {
-          preference = await UserPreference.create({ userId, movieId, liked });
+        preference = await Preference.create({ user_id: decoded.id, movie_id: movieId, liked });
       }
   
       res.status(200).json({ message: "Preference saved", preference });
