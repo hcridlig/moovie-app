@@ -9,4 +9,7 @@ router.post('/register', authController.register);
 // Connexion
 router.post('/login', authController.login);
 
+// Delete user
+router.delete('/delete', authController.deleteUser);
+
 module.exports = router;

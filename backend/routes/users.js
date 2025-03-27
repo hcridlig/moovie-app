@@ -22,4 +22,7 @@ router.post('/me/preferences', authMiddleware, userController.addPreference);
 // Récupérer les préférences de l’utilisateur (films visionnés avec opinion)
 router.get('/me/preferences', authMiddleware, userController.getPreferences);
 
+// Supprimer une préférence
+router.delete('/me/preferences', authMiddleware, userController.deletePreference);
+
 module.exports = router;

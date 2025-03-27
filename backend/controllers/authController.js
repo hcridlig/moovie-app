@@ -59,6 +59,40 @@ const authController = {
       res.status(500).json({ message: 'Erreur lors de la connexion.' });
     }
   },
+
+  deleteUser: async (req, res) => {
+    try {
+      const token = req.header('Authorization');
+  
+      if (!token) {
+        return res.status(401).json({ message: 'Accès refusé. Aucun token fourni.' });
+      }
+  
+      // Vérifier et décoder le token
+      const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.JWT_SECRET);
+      const userId = decoded.id;
+  
+      // Vérifier si l'utilisateur existe
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+      }
+  
+      // Supprimer l'utilisateur
+      await user.destroy();
+  
+      res.status(200).json({ message: 'Utilisateur supprimé avec succès.' });
+    } catch (error) {
+      console.error(error);
+  
+      if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token invalide ou expiré.' });
+      }
+  
+      res.status(500).json({ message: 'Erreur lors de la suppression de l\'utilisateur.' });
+    }
+  }
+  
 };
 
 module.exports = authController;

@@ -116,6 +116,40 @@ const userController = {
       return res.status(500).json({ message: 'Error saving preference', error });
     }
   },
+
+  deletePreference: async (req, res) => {
+    try {
+      const { movieId } = req.body; // Get movieId from request body
+  
+      // Retrieve the JWT token
+      const authHeader = req.header('Authorization');
+      if (!authHeader) {
+        return res.status(401).json({ message: 'Token manquant' });
+      }
+      const token = authHeader.split(' ')[1];
+  
+      // Decode the token to get the user ID
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.id;
+  
+      // Find the preference to delete
+      const preference = await Preference.findOne({ 
+        where: { user_id: userId, movie_id: movieId }
+      });
+  
+      if (!preference) {
+        return res.status(404).json({ message: 'Préférence non trouvée' });
+      }
+  
+      // Delete the preference
+      await preference.destroy();
+  
+      return res.status(200).json({ message: 'Préférence supprimée avec succès' });
+    } catch (error) {
+      console.error('Erreur lors de deletePreference:', error);
+      return res.status(500).json({ message: 'Erreur lors de la suppression de la préférence', error });
+    }
+  },
   
   getPreferences: async (req, res) => {
     const authHeader = req.headers.authorization;
