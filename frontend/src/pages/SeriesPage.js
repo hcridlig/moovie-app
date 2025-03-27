@@ -1,4 +1,5 @@
-// src/pages/SeriesPage.js
+// SeriesPage.js
+
 import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsContext } from '../contexts/SettingsContext';
@@ -8,22 +9,19 @@ import { getFilteredSeries, getTvGenres, getPlatforms } from '../utils/api';
 function SeriesPage() {
   const { t } = useTranslation();
   const { theme, country } = useContext(SettingsContext);
+  const language = localStorage.getItem('language') || 'en';
 
+  // États pour les séries
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [genres, setGenres] = useState([]);
-  const [platforms, setPlatformsState] = useState([]);
-  const language = localStorage.getItem('language') || 'en';
-
-  // On garde le même objet de filtres : seasons => géré par le backend
+  // États pour les filtres (formulaire et appliqués)
   const [filters, setFilters] = useState({
     genre: '',
     platform: '',
     minRating: '',
     seasons: ''
   });
-
   const [appliedFilters, setAppliedFilters] = useState({
     genre: '',
     platform: '',
@@ -31,16 +29,22 @@ function SeriesPage() {
     seasons: ''
   });
 
+  // État pour le tri et la pagination
   const [sortBy, setSortBy] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // handleSearch
+  // Données pour les genres et plateformes
+  const [genres, setGenres] = useState([]);
+  const [platforms, setPlatformsState] = useState([]);
+
+  /**
+   * Fonction de recherche qui combine filtres, tri, pays et pagination
+   */
   const handleSearch = useCallback(
     async (newPage = 1, currentFilters = appliedFilters, currentSortBy = sortBy, currentCountry = country) => {
       setLoading(true);
       try {
-        // On combine les filtres
         const searchFilters = {
           ...currentFilters,
           sortBy: currentSortBy,
@@ -48,7 +52,6 @@ function SeriesPage() {
           page: newPage,
         };
         const { results, total_pages } = await getFilteredSeries(searchFilters);
-
         setSeries(results);
         setTotalPages(total_pages);
         setPage(newPage);
@@ -61,7 +64,7 @@ function SeriesPage() {
     [appliedFilters, sortBy, country]
   );
 
-  // Chargement initial
+  // Chargement initial des données
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -79,22 +82,20 @@ function SeriesPage() {
     fetchData();
   }, [country, appliedFilters, sortBy, language, handleSearch]);
 
-  // Quand on change le tri ou les filtres, on relance la recherche à la page 1
+  // Lorsqu'on change le tri ou les filtres, relancer la recherche à la page 1
   useEffect(() => {
     handleSearch(1, appliedFilters, sortBy, country);
   }, [sortBy, country, appliedFilters, handleSearch]);
 
-  // Modif d'un champ du formulaire
+  // Gestion des changements dans le formulaire de filtres et tri
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     if (name === 'sortBy') {
       setSortBy(value);
-      //handleSearch(1, appliedFilters, value, country); // Apply sort immediately
     } else {
       setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
-  
 
   // Appliquer les filtres
   const handleApplyFilters = () => {
@@ -102,7 +103,7 @@ function SeriesPage() {
     handleSearch(1, filters, sortBy, country);
   };
 
-  // Reset
+  // Réinitialiser les filtres
   const handleResetFilters = () => {
     const defaultFilters = {
       genre: '',
@@ -116,19 +117,19 @@ function SeriesPage() {
     handleSearch(1, defaultFilters, '', country);
   };
 
-  // Pagination
+  // Fonction de pagination unifiée
   const handlePrevPage = () => {
     if (page > 1) {
-      handleSearch(page - 1, appliedFilters, sortBy, country);
+      handleSearch(page - 1, appliedFilters, country);
     }
   };
-
   const handleNextPage = () => {
     if (page < totalPages) {
-      handleSearch(page + 1, appliedFilters, sortBy, country);
+      handleSearch(page + 1, appliedFilters, country);
     }
   };
 
+  // Fonction pour générer les numéros de page
   const getPageNumbers = (current, total, maxVisible = 5) => {
     if (total <= 1) return [1];
     const half = Math.floor(maxVisible / 2);
@@ -162,29 +163,19 @@ function SeriesPage() {
   };
 
   return (
-    <div
-      className={`container mx-auto px-4 py-8 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'
-      }`}
-    >
+    <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-4">{t('seriesFilters') || 'Series Filters'}</h1>
 
       <div className="flex">
         {/* Barre latérale des filtres */}
-        <div
-          className={`w-1/4 p-6 rounded-lg shadow-md ${
-            theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-          } max-h-[49vh] overflow-y-auto`}
-        >
+        <div className={`w-1/4 p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} max-h-[49vh] overflow-y-auto`}>
           <div className="mb-4">
             <label className="block font-semibold dark:text-gray-200">{t('genre')}</label>
             <select
               name="genre"
               value={filters.genre}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded mt-2 ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
               <option value="">{t('allGenres')}</option>
               {genres.map((g) => (
@@ -201,9 +192,7 @@ function SeriesPage() {
               name="platform"
               value={filters.platform}
               onChange={handleFilterChange}
-              className={`w-full p-2 border rounded mt-2 ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
               <option value="">{t('allPlatforms')}</option>
               {platforms.map((p) => (
@@ -223,9 +212,7 @@ function SeriesPage() {
               onChange={handleFilterChange}
               min="0"
               max="10"
-              className={`w-full p-2 border rounded mt-2 ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             />
           </div>
 
@@ -239,9 +226,7 @@ function SeriesPage() {
               value={filters.seasons}
               onChange={handleFilterChange}
               min="0"
-              className={`w-full p-2 border rounded mt-2 ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`w-full p-2 border rounded mt-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             />
           </div>
 
@@ -259,33 +244,28 @@ function SeriesPage() {
           </button>
         </div>
 
-        {/* Zone principale */}
+        {/* Zone principale : tri + liste de séries */}
         <div className="flex-1">
           <div className="flex items-center justify-end mb-4">
-            <label className="mr-2 font-semibold">Trier par :</label>
+            <label className="mr-2 font-semibold">{t('sortBy')}:</label>
             <select
               name="sortBy"
               value={sortBy}
               onChange={handleFilterChange}
-              className={`p-2 border rounded ${
-                theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'
-              }`}
+              className={`p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
-              <option value="">Pertinence (défaut)</option>
-              <option value="first_air_date.asc">Date de sortie : Croissant</option>
-              <option value="first_air_date.desc">Date de sortie : Décroissant</option>
-              <option value="vote_average.asc">Note : Croissante</option>
-              <option value="vote_average.desc">Note : Décroissante</option>
+              <option value="">{t('defaultSorting')}</option>
+              <option value="first_air_date.asc">{t('first_air_date.asc')}</option>
+              <option value="first_air_date.desc">{t('first_air_date.desc')}</option>
+              <option value="vote_average.asc">{t('vote_average.asc')}</option>
+              <option value="vote_average.desc">{t('vote_average.desc')}</option>
             </select>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ml-8">
               {Array.from({ length: 8 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg"
-                />
+                <div key={idx} className="w-48 h-72 bg-gray-300 dark:bg-gray-700 animate-pulse rounded-lg" />
               ))}
             </div>
           ) : series.length === 0 ? (
@@ -297,44 +277,46 @@ function SeriesPage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-center space-x-2 my-6">
-        <button
-          onClick={handlePrevPage}
-          disabled={page === 1}
-          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
-        >
-          {t('previous')}
-        </button>
-        {getPageNumbers(page, totalPages, 5).map((p, index) =>
-          p === '...' ? (
-            <span key={index} className="px-3 py-1">
-              ...
-            </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => handleSearch(p, appliedFilters, sortBy, country)}
-              className={`px-3 py-1 rounded border ${
-                p === page
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
-              }`}
-            >
-              {p}
-            </button>
-          )
-        )}
-        <button
-          onClick={handleNextPage}
-          disabled={page === totalPages}
-          className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
-        >
-          {t('next')}
-        </button>
+          {/* Pagination */}
+          {series.length > 0 && (
+            <div className="flex items-center justify-center space-x-2 my-6">
+              <button
+                onClick={handlePrevPage}
+                disabled={page === 1}
+                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                {t('previous')}
+              </button>
+              {getPageNumbers(page, totalPages, 5).map((p, index) =>
+                p === '...' ? (
+                  <span key={index} className="px-3 py-1">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => handleSearch(p, appliedFilters, country)}
+                    className={`px-3 py-1 rounded border ${
+                      p === page
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+              <button
+                onClick={handleNextPage}
+                disabled={page === totalPages}
+                className="px-3 py-1 rounded border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                {t('next')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

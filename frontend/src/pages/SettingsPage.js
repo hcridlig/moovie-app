@@ -9,7 +9,7 @@ function SettingsPage() {
 
   return (
     <div className="container mx-auto mt-12 px-4 py-8">
-      <h2 className="text-3xl font-bold mb-6 dark:text-white">{t('settings')}</h2>
+      <h2 className="text-2xl font-bold mb-6 dark:text-white">{t('settings')}</h2>
 
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 max-w-md mx-auto">
         <h3 className="text-xl font-semibold mb-4 dark:text-white">{t('theme')}</h3>

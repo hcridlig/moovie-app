@@ -1,4 +1,5 @@
-// src/pages/SearchResultsPage.js
+// SearchResultsPage.js
+
 import React, { useState, useEffect, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getSearchedMulti } from '../utils/api';
@@ -16,15 +17,19 @@ function SearchResultsPage() {
   const searchQuery = query.get('query') || '';
   const { t } = useTranslation();
   const { theme } = useContext(SettingsContext);
+  
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // State pour le tri identique à MoviesPage
+  const [sortBy, setSortBy] = useState('');
 
   useEffect(() => {
     if (searchQuery.trim()) {
       setLoading(true);
-      getSearchedMulti(searchQuery, page)
+      getSearchedMulti(searchQuery, page, sortBy)
         .then(data => {
           setResults(data.results);
           setTotalPages(data.total_pages);
@@ -35,7 +40,7 @@ function SearchResultsPage() {
           setLoading(false);
         });
     }
-  }, [searchQuery, page]);
+  }, [searchQuery, page, sortBy]);
 
   // Réinitialise la page à 1 quand la query change
   useEffect(() => {
@@ -77,15 +82,40 @@ function SearchResultsPage() {
   const handlePageChange = (newPage) => {
     if (newPage !== '...' && newPage !== page) {
       setPage(newPage);
-      window.scrollTo(0, 0); // Retour en haut lors du changement de page
+      window.scrollTo(0, 0);
     }
   };
 
   return (
     <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
-      <h1 className="text-3xl font-bold mb-4">
-        {t('searchResults')}{searchQuery && ` pour "${searchQuery}"`}
-      </h1>
+      <div className="flex items-center justify-between mt-12 mb-4">
+        <h1 className="text-2xl font-bold">
+          {t('searchResults')}{searchQuery && ` pour "${searchQuery}"`}
+        </h1>
+        <div className="flex items-center">
+          <label htmlFor="sortBy" className="mr-2 font-semibold">
+            {t('sortBy')}:
+          </label>
+          <select
+            id="sortBy"
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPage(1);
+            }}
+            className={`p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
+          >
+            <option value="">{t('defaultSorting')}</option>
+            <option value="primary_release_date.asc">{t('primary_release_date.asc')}</option>
+            <option value="primary_release_date.desc">{t('primary_release_date.desc')}</option>
+            <option value="runtime.asc">{t('runtime.asc')}</option>
+            <option value="runtime.desc">{t('runtime.desc')}</option>
+            <option value="vote_average.asc">{t('vote_average.asc')}</option>
+            <option value="vote_average.desc">{t('vote_average.desc')}</option>
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <p>{t('loading')}</p>
       ) : results.length > 0 ? (

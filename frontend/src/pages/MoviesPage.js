@@ -286,22 +286,23 @@ function MoviesPage() {
         {/* Zone principale : tri + liste de films */}
         <div className="flex-1">
           <div className="flex items-center justify-end mb-4">
-            <label className="mr-2 font-semibold">Trier par :</label>
+            <label className="mr-2 font-semibold">{t('sortBy')}:</label>
             <select
               name="sortBy"
               value={filters.sortBy}
               onChange={handleFilterChange}
               className={`p-2 border rounded ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'border-gray-300'}`}
             >
-              <option value="">Pertinence (défaut)</option>
-              <option value="primary_release_date.asc">Date de sortie : Croissant</option>
-              <option value="primary_release_date.desc">Date de sortie : Décroissant</option>
-              <option value="runtime.asc">Durée : Croissant</option>
-              <option value="runtime.desc">Durée : Décroissant</option>
-              <option value="vote_average.asc">Note : Croissante</option>
-              <option value="vote_average.desc">Note : Décroissante</option>
+              <option value="">{t('defaultSorting')}</option>
+              <option value="primary_release_date.asc">{t('primary_release_date.asc')}</option>
+              <option value="primary_release_date.desc">{t('primary_release_date.desc')}</option>
+              <option value="runtime.asc">{t('runtime.asc')}</option>
+              <option value="runtime.desc">{t('runtime.desc')}</option>
+              <option value="vote_average.asc">{t('vote_average.asc')}</option>
+              <option value="vote_average.desc">{t('vote_average.desc')}</option>
             </select>
           </div>
+
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

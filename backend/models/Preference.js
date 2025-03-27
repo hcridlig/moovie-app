@@ -22,11 +22,11 @@ const Preference = sequelize.define(
       type: DataTypes.BOOLEAN,
       allowNull: false,
     },
-    media_type: {
+    mediaType: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    media_type: {
+    mediaType: {
       type: DataTypes.CHAR(5),
       allowNull: false,
     },

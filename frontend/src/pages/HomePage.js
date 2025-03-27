@@ -145,7 +145,7 @@ function HomePage() {
     >
       {/* Section Top Movies */}
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold mb-4">{t('topMoviesOfTheWeek')}</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('topMoviesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
           <button
             onClick={handlePrevious}
@@ -172,7 +172,7 @@ function HomePage() {
                   ))
                 : topMovies.map((item, idx) => (
                     <div
-                      key={item.id}
+                      key={`${item.id}-${idx}`}
                       ref={idx === 0 ? cardRef : null}
                       className={`flex-shrink-0 ${idx !== topMovies.length - 1 ? 'mr-10' : ''}`}
                     >
@@ -194,7 +194,7 @@ function HomePage() {
 
       {/* Section Top Series */}
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold mb-4">{t('topSeriesOfTheWeek')}</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('topSeriesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
           <button
             onClick={handleSeriesPrevious}

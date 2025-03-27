@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
-import { getMovieById, getStreamingPlatforms, addPreference } from '../utils/api'; 
+import { getMovieById, getStreamingPlatforms, addPreference, removePreference, getUserPreferences } from '../utils/api'; 
 import { FaStar, FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { AuthContext } from '../contexts/AuthContext';
@@ -16,6 +16,7 @@ function MovieDetailPage() {
 
   const [movie, setMovie] = useState(null);
   const [platforms, setPlatforms] = useState([]);
+  // State pour mémoriser l'opinion actuelle ('like', 'dislike' ou null)
   const [userOpinion, setUserOpinion] = useState(null);
   const scrollRef = useRef(null);
 
@@ -28,7 +29,7 @@ function MovieDetailPage() {
     'Canal Plus': (movie) => `https://www.canalplus.com/cinema/${encodeURIComponent(movie.title)}`,
     Crunchyroll: (movie) => `https://www.crunchyroll.com/fr/search?q=${encodeURIComponent(movie.title)}`,
     'Paramount Plus': (movie) => `https://www.paramountplus.com/search?q=${encodeURIComponent(movie.title)}`,
-    'TF1+': (movie) => `https://www.tf1.fr/programmes-tv?q=${encodeURIComponent(movie.title)}`,
+    'TF1+': (movie) => `https://www.tf1.fr/programmes-tv?q=${encodeURIComponent(movie.title)}`
   };
 
   const providerLoginUrls = {
@@ -40,25 +41,10 @@ function MovieDetailPage() {
     'Canal Plus': 'https://www.canalplus.com',
     Crunchyroll: `https://sso.crunchyroll.com/fr/login`,
     'Paramount Plus': `https://www.paramountplus.com/fr/account/signin/`,
-    'TF1+': `https://www.tf1.fr/compte/connexion`,
+    'TF1+': `https://www.tf1.fr/compte/connexion`
   };
 
-  const handleProviderClick = (provider, event) => {
-    event.preventDefault();
-    const isConnected = window.confirm(
-      `Êtes-vous connecté à ${provider.provider_name} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.`
-    );
-    if (isConnected) {
-      window.open(providerUrls[provider.provider_name](movie), "_blank");
-    } else {
-      window.open(
-        providerLoginUrls[provider.provider_name] ||
-          providerUrls[provider.provider_name](movie),
-        "_blank"
-      );
-    }
-  };
-
+  // Récupération des détails du film et des plateformes
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
@@ -74,17 +60,49 @@ function MovieDetailPage() {
     fetchMovieDetails();
   }, [id, country]);
 
+  // Récupère la préférence de l'utilisateur pour ce film
+  useEffect(() => {
+    const fetchUserPreference = async () => {
+      try {
+        const preferences = await getUserPreferences();
+        const pref = preferences.find(p =>
+          Number(p.movie_id) === Number(movie.id) &&
+          (p.mediaType === 'movie' || p.media_type === 'movie')
+        );
+        if (pref) {
+          setUserOpinion(pref.liked ? 'like' : 'dislike');
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération de la préférence utilisateur :", error);
+      }
+    };
+    if (movie) {
+      fetchUserPreference();
+    }
+  }, [movie]);
+
+  // Gestion du clic sur un pouce
   const handleOpinion = async (opinion) => {
     if (!isAuthenticated) {
       alert("Veuillez vous connecter pour noter le film.");
       return;
     }
-    if (userOpinion === opinion) return;
+    // Si le pouce cliqué est déjà sélectionné, on le supprime
+    if (userOpinion === opinion) {
+      try {
+        await removePreference({ movieId: movie.id, mediaType: 'movie' });
+        setUserOpinion(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de la préférence :", error);
+      }
+      return;
+    }
+    // Sinon, on enregistre la nouvelle préférence
     try {
       await addPreference({
         movieId: movie.id,
         liked: (opinion === 'like'),
-        media_type: 'movie'
+        mediaType: 'movie'
       });
       setUserOpinion(opinion);
     } catch (error) {
@@ -124,7 +142,7 @@ function MovieDetailPage() {
               </span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 text-sm">
-              {movie.vote_count} votes
+              {movie.vote_count} {t('votes')}
             </span>
           </div>
           <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">{movie.overview}</p>
@@ -176,7 +194,17 @@ function MovieDetailPage() {
                 {platforms.map((provider) => (
                   <button
                     key={provider.provider_id}
-                    onClick={(e) => handleProviderClick(provider, e)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const isConnected = window.confirm(
+                        `Êtes-vous connecté à ${provider.provider_name} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.`
+                      );
+                      if (isConnected) {
+                        window.open(providerUrls[provider.provider_name](movie), "_blank");
+                      } else {
+                        window.open(providerLoginUrls[provider.provider_name] || providerUrls[provider.provider_name](movie), "_blank");
+                      }
+                    }}
                     className="block bg-transparent border-none p-0 cursor-pointer"
                     aria-label={provider.provider_name}
                   >

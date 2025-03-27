@@ -1,22 +1,25 @@
-// src/pages/ProfilePage.js
+// ProfilePage.js
 
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserProfile, updateUserProfile, updatePassword } from '../utils/api';
+import { getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../utils/api';
 import { SettingsContext } from '../contexts/SettingsContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import ProfileSkeleton from '../components/ProfileSkeleton'; // Import du skeleton
+import ProfileSkeleton from '../components/ProfileSkeleton';
 
 function ProfilePage() {
   const { t } = useTranslation();
   const { theme } = useContext(SettingsContext);
+  const { logout } = useContext(AuthContext);
   const [user, setUser] = useState({ username: '', email: '', created_at: '' });
-  const [isLoading, setIsLoading] = useState(true); // État de chargement pour les données de profil
+  const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState({ username: '', email: '' });
   const [passwordEditing, setPasswordEditing] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +35,7 @@ function ProfilePage() {
         } catch (error) {
           console.error(t('errorFetchingData'), error);
         } finally {
-          setIsLoading(false); // Fin du chargement
+          setIsLoading(false);
         }
       }
       fetchUserProfile();
@@ -66,7 +69,6 @@ function ProfilePage() {
       setPasswordError(t('passwordMismatch'));
       return;
     }
-
     try {
       await updatePassword({ currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -86,6 +88,19 @@ function ProfilePage() {
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setPasswordError('');
     setPasswordEditing(false);
+  };
+
+  // Fonction pour supprimer le compte après confirmation
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+      logout();
+      alert(t('accountDeleted') || "Votre compte a été supprimé.");
+      navigate('/login');
+    } catch (error) {
+      console.error("Erreur lors de la suppression du compte :", error);
+      alert(t('accountDeleteError') || "Une erreur est survenue lors de la suppression de votre compte. Veuillez réessayer.");
+    }
   };
 
   return (
@@ -204,6 +219,36 @@ function ProfilePage() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Bouton pour supprimer le compte */}
+      <div className="mt-12">
+        <button onClick={() => setShowDeleteModal(true)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full">
+          {t('deleteAccount') || "Supprimer mon compte"}
+        </button>
+      </div>
+
+      {/* Pop-up de confirmation pour la suppression du compte */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          {/* Fond semi-transparent */}
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          {/* Contenu du modal étiré */}
+          <div className={`relative z-50 p-8 rounded-lg ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} shadow-lg max-w-lg w-full`}>
+            <h3 className="text-2xl font-bold mb-6">{t('deleteAccount')}</h3>
+            <p className="mb-8 text-lg">
+              {t('deleteAccountWarning') || "Attention, cette action est irréversible. Êtes-vous sûr de vouloir supprimer votre compte ?"}
+            </p>
+            <div className="flex space-x-4">
+              <button onClick={() => setShowDeleteModal(false)} className="w-1/2 bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
+                {t('cancelChanges')}
+              </button>
+              <button onClick={handleDeleteAccount} className="w-1/2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                {t('deleteAccount')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

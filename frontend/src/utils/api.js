@@ -150,7 +150,7 @@ export const getTVStreamingPlatforms = async (id, countryCode = 'FR') => {
  * Pour les films, ajoute la propriété "image" pour l'affiche.
  * Pour les séries, ajoute la propriété "posterUrl" pour l'affiche.
  */
-export const getSearchedMulti = async (query, page = 1) => {
+export const getSearchedMulti = async (query, page = 1, sortBy = null) => {
   try {
     const language = localStorage.getItem('language') || 'fr-FR';
     const response = await axios.get(`https://api.themoviedb.org/3/search/multi`, {
@@ -161,27 +161,46 @@ export const getSearchedMulti = async (query, page = 1) => {
         page,
       }
     });
-    const results = response.data.results
+    // Filtrer les résultats pour ne conserver que les films et séries
+    let results = response.data.results
       .filter(item => item.media_type === 'movie' || item.media_type === 'tv')
       .map(item => {
         if (item.media_type === 'movie') {
           return {
             ...item,
             title: item.title,
-            image: item.poster_path
-              ? `${imageUrl}${item.poster_path}`
-              : '/path/to/default-image.jpg',
+            image: item.poster_path ? `${imageUrl}${item.poster_path}` : '/path/to/default-image.jpg',
+            release_date: item.release_date,
           };
         } else {
           return {
             ...item,
             title: item.name,
-            posterUrl: item.poster_path
-              ? `${imageUrl}${item.poster_path}`
-              : '/path/to/default-image.jpg',
+            posterUrl: item.poster_path ? `${imageUrl}${item.poster_path}` : '/path/to/default-image.jpg',
+            release_date: item.first_air_date,
           };
         }
       });
+      
+    // Appliquer le tri si sortBy est spécifié
+    if (sortBy) {
+      let [field, order] = sortBy.split('.');
+      // Convertir "primary_release_date" en "release_date" pour correspondre aux données récupérées
+      if (field === 'primary_release_date') {
+        field = 'release_date';
+      }
+      results.sort((a, b) => {
+        if (field === 'vote_average' || field === 'runtime') {
+          return order === 'asc' ? a[field] - b[field] : b[field] - a[field];
+        } else if (field === 'release_date') {
+          const dateA = new Date(a.release_date);
+          const dateB = new Date(b.release_date);
+          return order === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+        return 0;
+      });
+    }
+
     return {
       results,
       total_pages: response.data.total_pages,
@@ -268,6 +287,21 @@ export const getUserProfile = async () => {
   }
   const data = await response.json();
   return data;
+};
+
+// Nouvelle fonction pour supprimer le compte de l'utilisateur
+export const deleteAccount = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
+  
+  const response = await axios.delete(`${apiUrl}/users/me`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+  
+  return response.data;
 };
 
 export const updateUserProfile = async (userData) => {
@@ -425,7 +459,7 @@ export const getTvGenres = async (language = 'fr-FR') => {
 };
 
 /**
- * Récupère la liste brute des préférences (movie_id, liked, media_type, etc.)
+ * Récupère la liste brute des préférences (movie_id, liked, mediaType, etc.)
  */
 export const getUserPreferences = async () => {
   const token = localStorage.getItem('token');
@@ -449,7 +483,7 @@ export const getUserPreferences = async () => {
 /**
  * Ajoute ou met à jour la préférence (like/dislike) d'un film ou d'une série
  */
-export const addPreference = async ({ movieId, liked, media_type }) => {
+export const addPreference = async ({ movieId, liked, mediaType }) => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
   
@@ -462,7 +496,7 @@ export const addPreference = async ({ movieId, liked, media_type }) => {
     body: JSON.stringify({
       movieId,
       liked,
-      media_type
+      mediaType
     }),
   });
   
@@ -471,4 +505,20 @@ export const addPreference = async ({ movieId, liked, media_type }) => {
   }
   
   return await response.json();
+};
+
+// Nouvelle fonction pour supprimer une préférence
+export const removePreference = async ({ movieId, mediaType }) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
+  
+  const response = await axios.delete(`${apiUrl}/users/me/preferences`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    data: { movieId, mediaType }
+  });
+  
+  return response.data;
 };
