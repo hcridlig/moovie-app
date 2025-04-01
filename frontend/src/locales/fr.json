@@ -106,6 +106,20 @@
   "confirmConnection": "Êtes-vous connecté à {{provider}} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.",
   "loginPrompt": "Veuillez vous connecter pour noter la série.",
   "recommendedMovies": "Films recommandés",
-  "noRecommendedMovies": "Aucune recommandation disponible."
+  "noRecommendedMovies": "Aucune recommandation disponible.",
+  "streamingPlatforms": "Plateformes de streaming",
+  "editStreamingPlatforms": "Modifier les plateformes de streaming",
+  "saveStreamingPlatforms": "Enregistrer les plateformes",
+  "cancelStreamingPlatforms": "Annuler les modifications",
+  "noStreamingPlatforms": "Aucune plateforme de streaming sélectionnée",
+  "recommendedSeries": "Série recommandée",
+  "noRecommendedSeries": "Aucune recommandation disponible.",
+  "Director": "Réalisateur",
+  "Screenplay": "Scénario",
+  "Writer": "Scénariste",
+  "Composer": "Compositeur",
+  "Original Music Composer": "Compositeur de la musique originale",
+  "technicalCrew": "Équipe Technique",
+  "filmographyOf": "Filmographie de {{name}}"
 }
 

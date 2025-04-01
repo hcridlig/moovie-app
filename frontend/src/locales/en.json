@@ -106,5 +106,19 @@
   "confirmConnection": "Are you connected to {{provider}}? Click OK if yes, otherwise cancel to log in.",
   "loginPrompt": "Please log in to rate the series.",
   "recommendedMovies": "Recommended Movies",
-  "noRecommendedMovies": "No recommendations available."
+  "noRecommendedMovies": "No recommendations available.",
+  "streamingPlatforms": "Streaming Platforms",
+  "editStreamingPlatforms": "Edit streaming platforms",
+  "saveStreamingPlatforms": "Save streaming platforms",
+  "cancelStreamingPlatforms": "Cancel changes",
+  "noStreamingPlatforms": "No streaming platforms selected",
+  "recommendedSeries": "Recommended Series",
+  "noRecommendedSeries": "No recommendation available.",
+  "Director": "Director",
+  "Screenplay": "Screenplay",
+  "Writer": "Writer",
+  "Composer": "Composer",
+  "Original Music Composer": "Original Music Composer",
+  "technicalCrew": "Technical Crew",
+  "filmographyOf": "Filmography of {{name}}"
 }

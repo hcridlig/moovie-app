@@ -6,6 +6,7 @@ import { SettingsContext } from '../contexts/SettingsContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import MovieCard from '../components/MovieCard';
+import MovieSkeleton from '../components/MovieSkeleton';
 
 function MovieDetailPage() {
   const { id } = useParams();
@@ -17,13 +18,40 @@ function MovieDetailPage() {
   const [platforms, setPlatforms] = useState([]);
   const [userOpinion, setUserOpinion] = useState(null);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
+  const [recLoading, setRecLoading] = useState(true);
   const scrollRef = useRef(null);
-
-  // États pour le carrousel des recommandations
+  
+  // Références et états pour le carrousel des recommandations
   const [recStartIndex, setRecStartIndex] = useState(0);
   const [recTranslateX, setRecTranslateX] = useState(0);
   const [recMaxTranslateX, setRecMaxTranslateX] = useState(0);
   const recCardRef = useRef(null);
+
+  // Nouveaux ref et fonctions pour l'équipe technique (crew)
+  const crewScrollRef = useRef(null);
+  const scrollLeftCrew = () => {
+    crewScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+  };
+  const scrollRightCrew = () => {
+    crewScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+  };
+
+  // Filtrer l'équipe technique selon les rôles désirés
+  const filteredCrew = movie?.credits?.crew.filter(member =>
+    ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+  ) || [];
+
+  // Fonction pour traduire le nom du métier
+  const translateJob = (job) => {
+    switch(job) {
+      case 'Director': return t('crew.director');
+      case 'Screenplay': return t('crew.screenplay');
+      case 'Writer': return t('crew.writer');
+      case 'Composer': return t('crew.composer');
+      case 'Original Music Composer': return t('crew.originalMusicComposer');
+      default: return job;
+    }
+  };
 
   const providerUrls = {
     Netflix: (movie) => `https://www.netflix.com/search?q=${encodeURIComponent(movie.title)}`,
@@ -92,11 +120,8 @@ function MovieDetailPage() {
       fetch(`${process.env.REACT_APP_API_URL}/movies/recommended/${movie.id}`)
         .then(res => res.json())
         .then(data => {
-          // data contient des objets avec movie_id (et movie_name)
-          // Pour chaque film recommandé, on récupère ses infos complètes via l'API
           return Promise.all(
             data.map(async rec => {
-              // rec.movie_id est utilisé pour récupérer les infos complètes
               try {
                 const fullMovieData = await getMovieById(rec.movie_id);
                 return fullMovieData;
@@ -108,10 +133,13 @@ function MovieDetailPage() {
           );
         })
         .then(fullMovies => {
-          // Filtrer les éventuels null
           setRecommendedMovies(fullMovies.filter(movie => movie));
+          setRecLoading(false);
         })
-        .catch(error => console.error("Erreur lors de la récupération des recommandations :", error));
+        .catch(error => {
+          console.error("Erreur lors de la récupération des recommandations :", error);
+          setRecLoading(false);
+        });
     }
   }, [movie]);
 
@@ -141,14 +169,8 @@ function MovieDetailPage() {
     };
   }, [recommendedMovies, recStartIndex]);
 
-  const handleRecNext = () => {
-    setRecStartIndex((prev) => prev + 1);
-  };
-
-  const handleRecPrevious = () => {
-    setRecStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
-  };
-
+  const handleRecNext = () => setRecStartIndex((prev) => prev + 1);
+  const handleRecPrevious = () => setRecStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
   const isRecNextDisabled = () => recTranslateX >= recMaxTranslateX;
 
   // Gestion du clic sur un pouce
@@ -197,7 +219,7 @@ function MovieDetailPage() {
   if (!movie) return <p className="text-center text-xl">{t('loading')}</p>;
 
   return (
-    <div className={`container mx-auto px-4 py-8 mt-12 ${theme==='dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
+    <div className={`container mx-auto px-4 py-8 mt-12 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
       <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img src={movie.image} alt={movie.title} className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0" />
         <div className="md:flex-1 space-y-4">
@@ -325,11 +347,54 @@ function MovieDetailPage() {
         </button>
       </div>
 
-      {/* Section Recommandations avec carrousel */}
-      {recommendedMovies && recommendedMovies.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-3xl font-semibold text-center mb-4">{t('recommendedMovies')}</h2>
-          <div className="relative flex items-center justify-center">
+      {/* Section Équipe Technique */}
+      {movie.credits?.crew && filteredCrew.length > 0 && (
+        <>
+          <h2 className="text-3xl font-semibold text-center mt-8 mb-4">Équipe Technique</h2>
+          <div className="relative">
+            <button
+              onClick={scrollLeftCrew}
+              className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
+            >
+              &lt;
+            </button>
+            <div ref={crewScrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
+              {filteredCrew.map((member) => (
+                <div
+                  key={member.id}
+                  className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                >
+                  <img
+                    src={
+                      member.profile_path
+                        ? `https://image.tmdb.org/t/p/w185${member.profile_path}`
+                        : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'
+                    }
+                    alt={member.name}
+                    className="w-full h-36 object-cover rounded-lg mb-2"
+                  />
+                  <p className="font-semibold text-sm truncate">{member.name}</p>
+                  <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {translateJob(member.job)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={scrollRightCrew}
+              className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
+            >
+              &gt;
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Section Recommandations */}
+      <div className="mt-8">
+        <h2 className="text-3xl font-semibold text-center mb-4">{t('recommendedMovies')}</h2>
+        { recLoading ? (
+          <div className="relative flex items-center justify-start">
             <button
               onClick={handleRecPrevious}
               disabled={recStartIndex === 0}
@@ -337,22 +402,15 @@ function MovieDetailPage() {
             >
               &lt;
             </button>
-
-            <div className="overflow-x-hidden mx-auto py-4 rec-carousel-container">
+            <div className="overflow-x-hidden py-4 rec-carousel-container">
               <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${recTranslateX}px)` }}>
-                {recommendedMovies.map((rec, index) => (
-                  <div
-                    key={rec.id}
-                    ref={index === 0 ? recCardRef : null}
-                    className={`flex-shrink-0 ${index !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}
-                  >
-                    {/* On ne passe plus la prop "index" pour ne pas afficher le badge */}
-                    <MovieCard key={rec.id} item={rec} />
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={idx} className="flex-shrink-0 mr-10">
+                    <MovieSkeleton />
                   </div>
                 ))}
               </div>
             </div>
-
             <button
               onClick={handleRecNext}
               disabled={isRecNextDisabled()}
@@ -361,8 +419,42 @@ function MovieDetailPage() {
               &gt;
             </button>
           </div>
-        </div>
-      )}
+        ) : recommendedMovies.length === 0 ? (
+          <div className="relative flex items-center justify-center py-4 rec-carousel-container min-h-[300px]">
+            <p className="text-center">{t('noRecommendedMovies')}</p>
+          </div>
+        ) : (
+          <div className="relative flex items-center justify-start">
+            <button
+              onClick={handleRecPrevious}
+              disabled={recStartIndex === 0}
+              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
+              &lt;
+            </button>
+            <div className="overflow-x-hidden py-4 rec-carousel-container">
+              <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${recTranslateX}px)` }}>
+                {recommendedMovies.map((rec, index) => (
+                  <div
+                    key={rec.id}
+                    ref={index === 0 ? recCardRef : null}
+                    className={`flex-shrink-0 ${index !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}
+                  >
+                    <MovieCard key={rec.id} item={rec} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleRecNext}
+              disabled={isRecNextDisabled()}
+              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
+              &gt;
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
