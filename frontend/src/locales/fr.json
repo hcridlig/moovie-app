@@ -96,5 +96,16 @@
   "vote_average.asc": "Note : Croissante",
   "vote_average.desc": "Note : Décroissante",
   "first_air_date.asc": "Date de diffusion : Croissant",
-  "first_air_date.desc": "Date de diffusion : Décroissant"
+  "first_air_date.desc": "Date de diffusion : Décroissant",
+  "accountDeleted": "Votre compte a été supprimé.",
+  "accountDeleteError": "Une erreur est survenue lors de la suppression de votre compte. Veuillez réessayer.",
+  "selectSeason": "Sélectionnez une saison :",
+  "season": "Saison",
+  "episodesForSeason": "Nombre d'épisodes de la saison {{season}}",
+  "firstSeasonReleaseDate": "Date de sortie de la première saison",
+  "confirmConnection": "Êtes-vous connecté à {{provider}} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.",
+  "loginPrompt": "Veuillez vous connecter pour noter la série.",
+  "recommendedMovies": "Films recommandés",
+  "noRecommendedMovies": "Aucune recommandation disponible."
 }
+

@@ -1,3 +1,4 @@
+// HomePage.js
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import MovieCard from '../components/MovieCard';
 import MovieSkeleton from '../components/MovieSkeleton';
@@ -5,6 +6,7 @@ import SerieCard from '../components/SerieCard';
 import { getTopMovies, getTopSeries } from '../utils/api';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 
 function HomePage() {
   const [topMovies, setTopMovies] = useState([]);
@@ -12,6 +14,16 @@ function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useContext(SettingsContext);
   const { t } = useTranslation();
+  const location = useLocation();
+  // Si un message de suppression est passé via la redirection, l'utiliser comme toast
+  const [toastMessage, setToastMessage] = useState(location.state?.deletionMessage || '');
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(''), 3000); // Disparaît après 3 secondes
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const cardRef = useRef(null);
   const [translateX, setTranslateX] = useState(0);
@@ -138,11 +150,14 @@ function HomePage() {
   };
 
   return (
-    <div
-      className={`container mx-auto px-4 mt-20 ${
-        theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'
-      }`}
-    >
+    <div className={`container mx-auto px-4 mt-20 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>
+      {/* Toast de confirmation de suppression */}
+      {toastMessage && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mt-14 px-4 py-2 rounded shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-green-500 text-white'}`}>
+          {toastMessage}
+        </div>
+      )}
+      
       {/* Section Top Movies */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">{t('topMoviesOfTheWeek')}</h2>

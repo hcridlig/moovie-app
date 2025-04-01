@@ -95,13 +95,13 @@ function ProfilePage() {
     try {
       await deleteAccount();
       logout();
-      alert(t('accountDeleted') || "Votre compte a été supprimé.");
-      navigate('/login');
+      // Redirection vers la HomePage avec le message de confirmation traduit
+      navigate('/', { state: { deletionMessage: t('accountDeleted') } });
     } catch (error) {
       console.error("Erreur lors de la suppression du compte :", error);
-      alert(t('accountDeleteError') || "Une erreur est survenue lors de la suppression de votre compte. Veuillez réessayer.");
+      alert(t('accountDeleteError'));
     }
-  };
+  };  
 
   return (
     <div className={`container mx-auto px-4 py-8 mt-12 max-w-lg ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>

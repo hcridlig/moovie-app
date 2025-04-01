@@ -1,13 +1,13 @@
-// WatchedPage.js
-
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import MovieCard from '../components/MovieCard';
 import SerieCard from '../components/SerieCard';
+import MovieSkeleton from '../components/MovieSkeleton';
 import { AuthContext } from '../contexts/AuthContext';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { getUserPreferences, getMovieById, getSerieById } from '../utils/api';
+import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 
 const WatchedPage = () => {
   const { isAuthenticated, username } = useContext(AuthContext);
@@ -42,7 +42,11 @@ const WatchedPage = () => {
             if (pref.mediaType === 'movie' || pref.media_type === 'movie') {
               const movieData = await getMovieById(pref.movie_id);
               return { ...pref, ...movieData, mediaType: 'movie' };
-            } else if (pref.mediaType === 'series' || pref.mediaType === 'serie' || pref.media_type === 'serie') {
+            } else if (
+              pref.mediaType === 'series' ||
+              pref.mediaType === 'serie' ||
+              pref.media_type === 'serie'
+            ) {
               const serieData = await getSerieById(pref.movie_id);
               return { ...pref, ...serieData, mediaType: 'serie' };
             }
@@ -127,93 +131,146 @@ const WatchedPage = () => {
   return (
     <div className={`container mx-auto mt-12 px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <h2 className="text-2xl font-bold mb-4">{t('watchedItems')}</h2>
-      {loading ? (
-        <p>{t('loading')}</p>
-      ) : (
-        <>
-          {/* --- Carrousel pour les items aimés sans fond gris --- */}
-          <div className="p-6 mb-6">
-            <h3 className="text-2xl font-semibold mb-4">{t('likedItems')}</h3>
-            {likedItems.length > 0 ? (
-              <div className="relative flex items-center justify-center">
-                <button
-                  onClick={handleLikedPrevious}
-                  disabled={likedStartIndex === 0}
-                  className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-                >
-                  &lt;
-                </button>
-                <div className="overflow-x-hidden mx-auto py-4 liked-carousel-container" ref={likedContainerRef}>
-                  <div
-                    className="flex transition-transform duration-500 ease-in-out"
-                    style={{ transform: `translateX(-${likedTranslateX}px)` }}
-                  >
-                    {likedItems.map((item, idx) => (
-                      <div key={`${item.preference_id}-${idx}`} className="card-item flex-shrink-0 mr-10">
-                        {item.mediaType === 'serie' ? (
-                          <SerieCard serie={item} />
-                        ) : (
-                          <MovieCard item={item} />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={handleLikedNext}
-                  disabled={isLikedNextDisabled()}
-                  className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-                >
-                  &gt;
-                </button>
-              </div>
-            ) : (
-              <p>{t('noWatchedItems')}</p>
-            )}
-          </div>
 
-          {/* --- Carrousel pour les items non aimés sans fond gris --- */}
-          <div className="p-6">
-            <h3 className="text-2xl font-semibold mb-4">{t('dislikedItems')}</h3>
-            {dislikedItems.length > 0 ? (
-              <div className="relative flex items-center justify-center">
-                <button
-                  onClick={handleDislikedPrevious}
-                  disabled={dislikedStartIndex === 0}
-                  className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-                >
-                  &lt;
-                </button>
-                <div className="overflow-x-hidden mx-auto py-4 disliked-carousel-container" ref={dislikedContainerRef}>
-                  <div
-                    className="flex transition-transform duration-500 ease-in-out"
-                    style={{ transform: `translateX(-${dislikedTranslateX}px)` }}
-                  >
-                    {dislikedItems.map((item, idx) => (
-                      <div key={`${item.preference_id}-${idx}`} className="card-item flex-shrink-0 mr-10">
-                        {item.mediaType === 'serie' ? (
-                          <SerieCard serie={item} />
-                        ) : (
-                          <MovieCard item={item} />
-                        )}
-                      </div>
-                    ))}
+      {/* --- Carrousel pour les items aimés sans fond gris --- */}
+      <div className="p-6 mb-6">
+        <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <span>{t('likedItems')}</span>
+          <FaThumbsUp size={20} className="text-green-500" />
+        </h3>
+        {loading ? (
+          <div className="relative flex items-center justify-start">
+            <button
+              disabled
+              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 text-white rounded-full p-2"
+            >
+              &lt;
+            </button>
+            <div className="overflow-x-hidden py-4 liked-carousel-container" ref={likedContainerRef}>
+              <div className="flex transition-transform duration-500 ease-in-out">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="card-item flex-shrink-0 mr-10">
+                    <MovieSkeleton />
                   </div>
-                </div>
-                <button
-                  onClick={handleDislikedNext}
-                  disabled={isDislikedNextDisabled()}
-                  className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-                >
-                  &gt;
-                </button>
+                ))}
               </div>
-            ) : (
-              <p>{t('noWatchedItems')}</p>
-            )}
+            </div>
+            <button
+              disabled
+              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 text-white rounded-full p-2"
+            >
+              &gt;
+            </button>
           </div>
-        </>
-      )}
+        ) : (
+          likedItems.length > 0 ? (
+            <div className="relative flex items-center justify-start">
+              <button
+                onClick={handleLikedPrevious}
+                disabled={likedStartIndex === 0}
+                className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+              >
+                &lt;
+              </button>
+              <div className="overflow-x-hidden py-4 liked-carousel-container" ref={likedContainerRef}>
+                <div
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${likedTranslateX}px)` }}
+                >
+                  {likedItems.map((item, idx) => (
+                    <div key={`${item.preference_id}-${idx}`} className="card-item flex-shrink-0 mr-10">
+                      {item.mediaType === 'serie' ? (
+                        <SerieCard serie={item} />
+                      ) : (
+                        <MovieCard item={item} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleLikedNext}
+                disabled={isLikedNextDisabled()}
+                className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+              >
+                &gt;
+              </button>
+            </div>
+          ) : (
+            <p>{t('noWatchedItems')}</p>
+          )
+        )}
+      </div>
+
+      {/* --- Carrousel pour les items non aimés sans fond gris --- */}
+      <div className="p-6">
+        <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <span>{t('dislikedItems')}</span>
+          <FaThumbsDown size={20} className="text-red-500" />
+        </h3>
+        {loading ? (
+          <div className="relative flex items-center justify-start">
+            <button
+              disabled
+              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 text-white rounded-full p-2"
+            >
+              &lt;
+            </button>
+            <div className="overflow-x-hidden py-4 disliked-carousel-container" ref={dislikedContainerRef}>
+              <div className="flex transition-transform duration-500 ease-in-out">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="card-item flex-shrink-0 mr-10">
+                    <MovieSkeleton />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              disabled
+              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 text-white rounded-full p-2"
+            >
+              &gt;
+            </button>
+          </div>
+        ) : (
+          dislikedItems.length > 0 ? (
+            <div className="relative flex items-center justify-start">
+              <button
+                onClick={handleDislikedPrevious}
+                disabled={dislikedStartIndex === 0}
+                className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+              >
+                &lt;
+              </button>
+              <div className="overflow-x-hidden py-4 disliked-carousel-container" ref={dislikedContainerRef}>
+                <div
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${dislikedTranslateX}px)` }}
+                >
+                  {dislikedItems.map((item, idx) => (
+                    <div key={`${item.preference_id}-${idx}`} className="card-item flex-shrink-0 mr-10">
+                      {item.mediaType === 'serie' ? (
+                        <SerieCard serie={item} />
+                      ) : (
+                        <MovieCard item={item} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleDislikedNext}
+                disabled={isDislikedNextDisabled()}
+                className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+              >
+                &gt;
+              </button>
+            </div>
+          ) : (
+            <p>{t('noWatchedItems')}</p>
+          )
+        )}
+      </div>
     </div>
   );
 };

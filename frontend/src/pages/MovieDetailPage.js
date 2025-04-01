@@ -1,5 +1,3 @@
-// MovieDetailPage.js
-
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { getMovieById, getStreamingPlatforms, addPreference, removePreference, getUserPreferences } from '../utils/api'; 
@@ -7,6 +5,7 @@ import { FaStar, FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import MovieCard from '../components/MovieCard';
 
 function MovieDetailPage() {
   const { id } = useParams();
@@ -16,9 +15,15 @@ function MovieDetailPage() {
 
   const [movie, setMovie] = useState(null);
   const [platforms, setPlatforms] = useState([]);
-  // State pour mémoriser l'opinion actuelle ('like', 'dislike' ou null)
   const [userOpinion, setUserOpinion] = useState(null);
+  const [recommendedMovies, setRecommendedMovies] = useState([]);
   const scrollRef = useRef(null);
+
+  // États pour le carrousel des recommandations
+  const [recStartIndex, setRecStartIndex] = useState(0);
+  const [recTranslateX, setRecTranslateX] = useState(0);
+  const [recMaxTranslateX, setRecMaxTranslateX] = useState(0);
+  const recCardRef = useRef(null);
 
   const providerUrls = {
     Netflix: (movie) => `https://www.netflix.com/search?q=${encodeURIComponent(movie.title)}`,
@@ -60,7 +65,7 @@ function MovieDetailPage() {
     fetchMovieDetails();
   }, [id, country]);
 
-  // Récupère la préférence de l'utilisateur pour ce film
+  // Récupération de la préférence de l'utilisateur pour ce film
   useEffect(() => {
     const fetchUserPreference = async () => {
       try {
@@ -81,13 +86,77 @@ function MovieDetailPage() {
     }
   }, [movie]);
 
+  // Récupération des films recommandés
+  useEffect(() => {
+    if (movie) {
+      fetch(`${process.env.REACT_APP_API_URL}/movies/recommended/${movie.id}`)
+        .then(res => res.json())
+        .then(data => {
+          // data contient des objets avec movie_id (et movie_name)
+          // Pour chaque film recommandé, on récupère ses infos complètes via l'API
+          return Promise.all(
+            data.map(async rec => {
+              // rec.movie_id est utilisé pour récupérer les infos complètes
+              try {
+                const fullMovieData = await getMovieById(rec.movie_id);
+                return fullMovieData;
+              } catch (error) {
+                console.error(`Erreur lors de la récupération du film ${rec.movie_id}`, error);
+                return null;
+              }
+            })
+          );
+        })
+        .then(fullMovies => {
+          // Filtrer les éventuels null
+          setRecommendedMovies(fullMovies.filter(movie => movie));
+        })
+        .catch(error => console.error("Erreur lors de la récupération des recommandations :", error));
+    }
+  }, [movie]);
+
+  // Mise à jour des mesures pour le carrousel des recommandations
+  useEffect(() => {
+    const updateRecMeasurements = () => {
+      if (recCardRef.current && recommendedMovies.length > 0) {
+        const style = window.getComputedStyle(recCardRef.current);
+        const width = recCardRef.current.offsetWidth;
+        const marginRight = parseFloat(style.marginRight) || 0;
+        const computedCardWidth = width + marginRight;
+        const totalWidth = recommendedMovies.length * computedCardWidth - marginRight;
+        const container = document.querySelector('.rec-carousel-container');
+        const containerWidth = container ? container.offsetWidth : 0;
+        const maxTranslate = Math.max(totalWidth - containerWidth, 0);
+        setRecMaxTranslateX(maxTranslate);
+
+        const currentTranslate = Math.min(recStartIndex * computedCardWidth, maxTranslate);
+        setRecTranslateX(currentTranslate);
+      }
+    };
+
+    updateRecMeasurements();
+    window.addEventListener('resize', updateRecMeasurements);
+    return () => {
+      window.removeEventListener('resize', updateRecMeasurements);
+    };
+  }, [recommendedMovies, recStartIndex]);
+
+  const handleRecNext = () => {
+    setRecStartIndex((prev) => prev + 1);
+  };
+
+  const handleRecPrevious = () => {
+    setRecStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
+  };
+
+  const isRecNextDisabled = () => recTranslateX >= recMaxTranslateX;
+
   // Gestion du clic sur un pouce
   const handleOpinion = async (opinion) => {
     if (!isAuthenticated) {
       alert("Veuillez vous connecter pour noter le film.");
       return;
     }
-    // Si le pouce cliqué est déjà sélectionné, on le supprime
     if (userOpinion === opinion) {
       try {
         await removePreference({ movieId: movie.id, mediaType: 'movie' });
@@ -97,7 +166,6 @@ function MovieDetailPage() {
       }
       return;
     }
-    // Sinon, on enregistre la nouvelle préférence
     try {
       await addPreference({
         movieId: movie.id,
@@ -166,21 +234,13 @@ function MovieDetailPage() {
               <div className="flex items-center space-x-4 mt-4">
                 <button
                   onClick={() => handleOpinion('like')}
-                  className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
-                    userOpinion === 'like'
-                      ? 'bg-green-500 bg-opacity-70 text-white'
-                      : 'bg-green-500 bg-opacity-20 text-green-700'
-                  }`}
+                  className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${userOpinion === 'like' ? 'bg-green-500 bg-opacity-70 text-white' : 'bg-green-500 bg-opacity-20 text-green-700'}`}
                 >
                   <FaThumbsUp size={20} />
                 </button>
                 <button
                   onClick={() => handleOpinion('dislike')}
-                  className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
-                    userOpinion === 'dislike'
-                      ? 'bg-red-500 bg-opacity-70 text-white'
-                      : 'bg-red-500 bg-opacity-20 text-red-700'
-                  }`}
+                  className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${userOpinion === 'dislike' ? 'bg-red-500 bg-opacity-70 text-white' : 'bg-red-500 bg-opacity-20 text-red-700'}`}
                 >
                   <FaThumbsDown size={20} />
                 </button>
@@ -226,15 +286,12 @@ function MovieDetailPage() {
         </div>
       </div>
 
+      {/* Section Casting */}
       <h2 className="text-3xl font-semibold text-center mt-8 mb-4">{t('mainCast')}</h2>
       <div className="relative">
         <button
           onClick={scrollLeft}
-          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-            theme === 'dark'
-              ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-              : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-          }`}
+          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &lt;
         </button>
@@ -242,9 +299,7 @@ function MovieDetailPage() {
           {movie.credits?.cast.slice(0, 12).map((actor) => (
             <div
               key={actor.id}
-              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${
-                theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
-              }`}
+              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
             >
               <img
                 src={
@@ -264,15 +319,50 @@ function MovieDetailPage() {
         </div>
         <button
           onClick={scrollRight}
-          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-            theme === 'dark'
-              ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-              : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-          }`}
+          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &gt;
         </button>
       </div>
+
+      {/* Section Recommandations avec carrousel */}
+      {recommendedMovies && recommendedMovies.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-3xl font-semibold text-center mb-4">{t('recommendedMovies')}</h2>
+          <div className="relative flex items-center justify-center">
+            <button
+              onClick={handleRecPrevious}
+              disabled={recStartIndex === 0}
+              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
+              &lt;
+            </button>
+
+            <div className="overflow-x-hidden mx-auto py-4 rec-carousel-container">
+              <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${recTranslateX}px)` }}>
+                {recommendedMovies.map((rec, index) => (
+                  <div
+                    key={rec.id}
+                    ref={index === 0 ? recCardRef : null}
+                    className={`flex-shrink-0 ${index !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}
+                  >
+                    {/* On ne passe plus la prop "index" pour ne pas afficher le badge */}
+                    <MovieCard key={rec.id} item={rec} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleRecNext}
+              disabled={isRecNextDisabled()}
+              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

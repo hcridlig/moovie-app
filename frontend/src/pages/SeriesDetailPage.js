@@ -1,5 +1,3 @@
-// SerieDetailPage.js
-
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { getSerieById, getTVStreamingPlatforms, addPreference, removePreference, getUserPreferences } from '../utils/api';
@@ -16,22 +14,49 @@ function SerieDetailPage() {
 
   const [serie, setSerie] = useState(null);
   const [platforms, setPlatforms] = useState([]);
-  // State pour mémoriser l'opinion actuelle ('like', 'dislike' ou null)
   const [userOpinion, setUserOpinion] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
   const scrollRef = useRef(null);
 
   const providerUrls = {
-    Netflix: (serie) => `https://www.netflix.com/search?q=${encodeURIComponent(serie.title || serie.name)}`,
-    'Amazon Prime Video': (serie) => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(serie.title || serie.name)}`,
-    'Disney Plus': (serie) => `https://www.disneyplus.com/search?q=${encodeURIComponent(serie.title || serie.name)}`,
-    Max: (serie) => `https://play.max.com/search/result?q=${encodeURIComponent(serie.title || serie.name)}`,
-    'Apple TV+': (serie) => `https://tv.apple.com/search?term=${encodeURIComponent(serie.title || serie.name)}`,
-    'Canal Plus': (serie) => `https://www.canalplus.com/series/${encodeURIComponent(serie.title || serie.name)}`,
-    Crunchyroll: (serie) => `https://www.crunchyroll.com/fr/search?q=${encodeURIComponent(serie.title || serie.name)}`,
-    'Paramount Plus': (serie) => `https://www.paramountplus.com/search?q=${encodeURIComponent(serie.title || serie.name)}`,
-    'TF1+': (serie) => `https://www.tf1.fr/programmes-tv?q=${encodeURIComponent(serie.title || serie.name)}`
+    Netflix: (serie) =>
+      `https://www.netflix.com/search?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'Amazon Prime Video': (serie) =>
+      `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'Disney Plus': (serie) =>
+      `https://www.disneyplus.com/search?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    Max: (serie) =>
+      `https://play.max.com/search/result?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'Apple TV+': (serie) =>
+      `https://tv.apple.com/search?term=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'Canal Plus': (serie) =>
+      `https://www.canalplus.com/series/${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    Crunchyroll: (serie) =>
+      `https://www.crunchyroll.com/fr/search?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'Paramount Plus': (serie) =>
+      `https://www.paramountplus.com/search?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`,
+    'TF1+': (serie) =>
+      `https://www.tf1.fr/programmes-tv?q=${encodeURIComponent(
+        serie.title || serie.name
+      )}`
   };
-
+  
   const providerLoginUrls = {
     Netflix: 'https://www.netflix.com/login',
     'Amazon Prime Video': 'https://www.primevideo.com/ap/signin',
@@ -39,9 +64,9 @@ function SerieDetailPage() {
     Max: 'https://auth.max.com/login',
     'Apple TV+': 'https://tv.apple.com/login',
     'Canal Plus': 'https://www.canalplus.com/login',
-    Crunchyroll: `https://sso.crunchyroll.com/fr/login`,
-    'Paramount Plus': `https://www.paramountplus.com/fr/account/signin/`,
-    'TF1+': `https://www.tf1.fr/compte/connexion`
+    Crunchyroll: 'https://sso.crunchyroll.com/fr/login',
+    'Paramount Plus': 'https://www.paramountplus.com/fr/account/signin/',
+    'TF1+': 'https://www.tf1.fr/compte/connexion'
   };
 
   // Récupération des détails de la série et des plateformes
@@ -50,6 +75,10 @@ function SerieDetailPage() {
       try {
         const serieData = await getSerieById(id);
         setSerie(serieData);
+        // Initialiser la saison sélectionnée sur la première saison si elle existe
+        if (serieData.seasons && serieData.seasons.length > 0) {
+          setSelectedSeason(serieData.seasons[0]);
+        }
         const selectedCountry = country || 'FR';
         const platformData = await getTVStreamingPlatforms(id, selectedCountry);
         setPlatforms(platformData);
@@ -67,7 +96,7 @@ function SerieDetailPage() {
         const preferences = await getUserPreferences();
         const pref = preferences.find(p =>
           Number(p.movie_id) === Number(serie.id) &&
-          ((p.mediaType === 'serie') || (p.media_type === 'serie'))
+          (p.mediaType === 'serie' || p.media_type === 'serie')
         );
         if (pref) {
           setUserOpinion(pref.liked ? 'like' : 'dislike');
@@ -84,7 +113,7 @@ function SerieDetailPage() {
   // Gestion du clic sur un pouce
   const handleOpinion = async (opinion) => {
     if (!isAuthenticated) {
-      alert("Veuillez vous connecter pour noter la série.");
+      alert(t('loginPrompt') || "Veuillez vous connecter pour noter la série.");
       return;
     }
     if (userOpinion === opinion) {
@@ -120,6 +149,7 @@ function SerieDetailPage() {
 
   return (
     <div className={`container mx-auto px-4 py-8 mt-12 ${theme==='dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
+      {/* Partie informations principales de la série */}
       <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img src={serie.posterUrl} alt={serie.title || serie.name} className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0" />
         <div className="md:flex-1 space-y-4">
@@ -136,30 +166,76 @@ function SerieDetailPage() {
             </span>
           </div>
           <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">{serie.overview}</p>
+
+          {/* Liste déroulante pour sélectionner une saison */}
+          {serie.seasons && serie.seasons.length > 0 && (
+            <div className="my-4">
+              <label htmlFor="season-select" className="block font-semibold mb-2">
+                {t('selectSeason')}
+              </label>
+              <select
+                id="season-select"
+                value={selectedSeason?.season_number || ''}
+                onChange={(e) => {
+                  const seasonNumber = Number(e.target.value);
+                  const season = serie.seasons.find(s => s.season_number === seasonNumber);
+                  setSelectedSeason(season);
+                }}
+                className="p-2 rounded border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300"
+              >
+                {serie.seasons.map((s) => (
+                  <option key={s.id || s.season_number} value={s.season_number}>
+                    {t('season')} {s.season_number}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Informations supplémentaires similaires à MovieDetailPage */}
+          <div className="space-y-2">
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('firstSeasonReleaseDate')}:</strong> {serie.first_air_date || 'N/A'}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('genres')}:</strong> {serie.genres ? serie.genres.map(g => g.name).join(', ') : 'N/A'}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('numberOfSeasons')}:</strong> {serie.number_of_seasons || 'N/A'}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('totalNumberOfEpisodes')}:</strong> {serie.number_of_episodes || 'N/A'}
+            </p>
+            {selectedSeason && (
+              <p className="text-gray-700 dark:text-gray-300">
+                <strong>{t('episodesForSeason', { season: selectedSeason.season_number })}:</strong> {selectedSeason.episode_count || 'N/A'}
+              </p>
+            )}
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('budget')}:</strong> {serie.budget ? `$${serie.budget.toLocaleString()}` : 'N/A'}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              <strong>{t('revenue')}:</strong> {serie.revenue ? `$${serie.revenue.toLocaleString()}` : 'N/A'}
+            </p>
+          </div>
+
           {isAuthenticated && (
             <div className="flex items-center space-x-4 mt-4">
               <button
                 onClick={() => handleOpinion('like')}
-                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
-                  userOpinion === 'like'
-                    ? 'bg-green-500 bg-opacity-70 text-white'
-                    : 'bg-green-500 bg-opacity-20 text-green-700'
-                }`}
+                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${userOpinion === 'like' ? 'bg-green-500 bg-opacity-70 text-white' : 'bg-green-500 bg-opacity-20 text-green-700'}`}
               >
                 <FaThumbsUp size={20} />
               </button>
               <button
                 onClick={() => handleOpinion('dislike')}
-                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${
-                  userOpinion === 'dislike'
-                    ? 'bg-red-500 bg-opacity-70 text-white'
-                    : 'bg-red-500 bg-opacity-20 text-red-700'
-                }`}
+                className={`p-2 rounded-full transform transition duration-200 active:scale-95 ${userOpinion === 'dislike' ? 'bg-red-500 bg-opacity-70 text-white' : 'bg-red-500 bg-opacity-20 text-red-700'}`}
               >
                 <FaThumbsDown size={20} />
               </button>
             </div>
           )}
+
           <div className="my-4">
             <h3 className="text-lg font-semibold mb-2">{t('availableOn')}</h3>
             {platforms && platforms.length > 0 ? (
@@ -170,7 +246,7 @@ function SerieDetailPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       const isConnected = window.confirm(
-                        `Êtes-vous connecté à ${provider.provider_name} ? Cliquez sur OK si oui, sinon sur Annuler pour vous connecter.`
+                        `${t('confirmConnection', { provider: provider.provider_name })}`
                       );
                       if (isConnected) {
                         window.open(providerUrls[provider.provider_name](serie), "_blank");
@@ -192,7 +268,7 @@ function SerieDetailPage() {
               </div>
             ) : (
               <div className="text-gray-700 dark:text-gray-300">
-                {t('notAvailableInCountry') || 'Non disponible dans ce pays'}
+                {t('notAvailableInCountry')}
               </div>
             )}
           </div>
@@ -203,11 +279,7 @@ function SerieDetailPage() {
       <div className="relative">
         <button
           onClick={scrollLeft}
-          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-            theme === 'dark'
-              ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-              : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-          }`}
+          className={`absolute left-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &lt;
         </button>
@@ -215,9 +287,7 @@ function SerieDetailPage() {
           {serie.credits?.cast.slice(0, 12).map((actor) => (
             <div
               key={actor.id}
-              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${
-                theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'
-              }`}
+              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
             >
               <img
                 src={
@@ -237,11 +307,7 @@ function SerieDetailPage() {
         </div>
         <button
           onClick={scrollRight}
-          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${
-            theme === 'dark'
-              ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75'
-              : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'
-          }`}
+          className={`absolute right-0 top-1/2 transform -translate-y-1/2 rounded-full p-2 z-10 text-white ${theme === 'dark' ? 'bg-gray-700 bg-opacity-50 hover:bg-opacity-75' : 'bg-gray-300 bg-opacity-50 hover:bg-opacity-75'}`}
         >
           &gt;
         </button>

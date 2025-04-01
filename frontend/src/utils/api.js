@@ -294,7 +294,7 @@ export const deleteAccount = async () => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('Aucun token disponible, utilisateur non authentifié.');
   
-  const response = await axios.delete(`${apiUrl}/users/me`, {
+  const response = await axios.delete(`${apiUrl}/auth/delete`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
