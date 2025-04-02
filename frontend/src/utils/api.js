@@ -1,3 +1,4 @@
+// api.js
 import axios from 'axios';
 
 const apiUrl = process.env.REACT_APP_API_URL; // URL de votre backend
@@ -361,6 +362,11 @@ export const getCountries = async () => {
 
 /**
  * Récupère les films en fonction des filtres.
+ * 
+ * Modification apportée pour le tri par durée (runtime) :
+ * - Si sortBy commence par "runtime", on ne l'envoie pas à l'API.
+ * - Après réception des résultats, on récupère (si nécessaire) la durée de chaque film via getMovieById,
+ *   puis on trie manuellement la liste en fonction de la durée (ascendant ou descendant).
  */
 export const getFilteredMovies = async (filters) => {
   const { genre, country, platform, minRating, releaseYear, minDuration, maxDuration, page, sortBy } = filters;
@@ -376,20 +382,41 @@ export const getFilteredMovies = async (filters) => {
       region: selectedCountry,
       page: page || 1,
       "primary_release_date.gte": pastDate,
-      "primary_release_date.lte": today
+      "primary_release_date.lte": today,
     };
     if (genre) params.with_genres = genre;
     if (minRating) params["vote_average.gte"] = minRating;
     if (releaseYear) params.primary_release_year = releaseYear;
     if (minDuration) params["with_runtime.gte"] = minDuration;
     if (maxDuration) params["with_runtime.lte"] = maxDuration;
-    if (sortBy) params.sort_by = sortBy;
+    // N'envoie pas sort_by si c'est un tri par runtime
+    if (sortBy && !sortBy.startsWith('runtime')) params.sort_by = sortBy;
 
     const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });
-    const movies = response.data.results.map(movie => ({
+    let movies = response.data.results.map(movie => ({
       ...movie,
       image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg',
     }));
+
+    if (sortBy && sortBy.startsWith('runtime')) {
+      movies = await Promise.all(
+        movies.map(async (movie) => {
+          if (movie.runtime == null) {
+            try {
+              const details = await getMovieById(movie.id);
+              return { ...movie, runtime: details.runtime };
+            } catch (e) {
+              return { ...movie, runtime: 0 };
+            }
+          }
+          return movie;
+        })
+      );
+      movies.sort((a, b) =>
+        sortBy === 'runtime.asc' ? a.runtime - b.runtime : b.runtime - a.runtime
+      );
+    }
+
     return {
       results: movies,
       total_pages: response.data.total_pages,
@@ -410,13 +437,34 @@ export const getFilteredMovies = async (filters) => {
     if (releaseYear) params.primary_release_year = releaseYear;
     if (minDuration) params["with_runtime.gte"] = minDuration;
     if (maxDuration) params["with_runtime.lte"] = maxDuration;
-    if (sortBy) params.sort_by = sortBy;
+    // N'envoie pas sort_by si c'est un tri par runtime
+    if (sortBy && !sortBy.startsWith('runtime')) params.sort_by = sortBy;
 
     const response = await axios.get('https://api.themoviedb.org/3/discover/movie', { params });
-    const movies = response.data.results.map(movie => ({
+    let movies = response.data.results.map(movie => ({
       ...movie,
       image: movie.poster_path ? `${imageUrl}${movie.poster_path}` : '/path/to/default-image.jpg',
     }));
+
+    if (sortBy && sortBy.startsWith('runtime')) {
+      movies = await Promise.all(
+        movies.map(async (movie) => {
+          if (movie.runtime == null) {
+            try {
+              const details = await getMovieById(movie.id);
+              return { ...movie, runtime: details.runtime };
+            } catch (e) {
+              return { ...movie, runtime: 0 };
+            }
+          }
+          return movie;
+        })
+      );
+      movies.sort((a, b) =>
+        sortBy === 'runtime.asc' ? a.runtime - b.runtime : b.runtime - a.runtime
+      );
+    }
+
     return {
       results: movies,
       total_pages: response.data.total_pages,

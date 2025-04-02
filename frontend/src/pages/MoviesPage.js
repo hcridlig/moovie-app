@@ -173,6 +173,16 @@ function MoviesPage() {
     return pages;
   };
 
+  // --- AJOUT : Mise à jour immédiate du filtre "trier par" ---
+  useEffect(() => {
+    if (filters.sortBy !== appliedFilters.sortBy) {
+      const newFilters = { ...appliedFilters, sortBy: filters.sortBy };
+      setAppliedFilters(newFilters);
+      handleSearch(1, newFilters, country);
+    }
+  }, [filters.sortBy, appliedFilters, country, handleSearch]);
+  // -----------------------------------------------------------
+
   return (
     <div className={`container mx-auto px-4 py-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-6">{t('movieFilters')}</h1>
@@ -302,7 +312,6 @@ function MoviesPage() {
               <option value="vote_average.desc">{t('vote_average.desc')}</option>
             </select>
           </div>
-
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

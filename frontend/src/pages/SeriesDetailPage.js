@@ -6,6 +6,7 @@ import { SettingsContext } from '../contexts/SettingsContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import SerieCard from '../components/SerieCard';
+import MovieCard from '../components/MovieCard';
 import MovieSkeleton from '../components/MovieSkeleton';
 
 function SerieDetailPage() {
@@ -14,34 +15,7 @@ function SerieDetailPage() {
   const { isAuthenticated } = useContext(AuthContext);
   const { t } = useTranslation();
 
-  const [serie, setSerie] = useState(null);
-  const [platforms, setPlatforms] = useState([]);
-  const [userOpinion, setUserOpinion] = useState(null);
-  const [selectedSeason, setSelectedSeason] = useState(null);
-  const scrollRef = useRef(null);
-
-  // États pour le carrousel des recommandations de séries
-  const [recommendedSeries, setRecommendedSeries] = useState([]);
-  const [recLoadingSeries, setRecLoadingSeries] = useState(true);
-  const [recStartIndexSeries, setRecStartIndexSeries] = useState(0);
-  const [recTranslateXSeries, setRecTranslateXSeries] = useState(0);
-  const [recMaxTranslateXSeries, setRecMaxTranslateXSeries] = useState(0);
-  const recCardRefSeries = useRef(null);
-
-  // Nouveaux ref et fonctions pour l'équipe technique (crew)
-  const crewScrollRef = useRef(null);
-  const scrollLeftCrew = () => {
-    crewScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-  };
-  const scrollRightCrew = () => {
-    crewScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-  };
-
-  // Filtrer l'équipe technique selon les rôles désirés
-  const filteredCrew = serie?.credits?.crew.filter(member =>
-    ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
-  ) || [];
-
+  // Définition des URL pour les fournisseurs de streaming
   const providerUrls = {
     Netflix: (serie) =>
       `https://www.netflix.com/search?q=${encodeURIComponent(serie.title || serie.name)}`,
@@ -75,17 +49,91 @@ function SerieDetailPage() {
     'TF1+': 'https://www.tf1.fr/compte/connexion'
   };
 
-  // Récupération des détails de la série et des plateformes
+  // États principaux
+  const [serie, setSerie] = useState(null);
+  const [platforms, setPlatforms] = useState([]);
+  const [userOpinion, setUserOpinion] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  const scrollRef = useRef(null);
+
+  // Carrousel des recommandations de séries
+  const [recommendedSeries, setRecommendedSeries] = useState([]);
+  const [recLoadingSeries, setRecLoadingSeries] = useState(true);
+  const [recStartIndexSeries, setRecStartIndexSeries] = useState(0);
+  const [recTranslateXSeries, setRecTranslateXSeries] = useState(0);
+  const [recMaxTranslateXSeries, setRecMaxTranslateXSeries] = useState(0);
+  const recCardRefSeries = useRef(null);
+
+  // Équipe technique (crew)
+  const crewScrollRef = useRef(null);
+  const scrollLeftCrew = () => {
+    crewScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+  };
+  const scrollRightCrew = () => {
+    crewScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+  };
+
+  // Pour l’équipe technique, on souhaite utiliser les crédits de la saison sélectionnée.
+  // Si ces informations sont manquantes, on utilise celles de la saison qui comporte le plus de membres d'équipe technique.
+  // En dernier recours, on utilisera les crédits généraux de la série.
+  const validSeasons = serie?.seasons?.filter(s => s.season_number > 0);
+  const seasonsWithCredits = validSeasons?.filter(s => s.credits && s.credits.crew) || [];
+  const fallbackSeason = seasonsWithCredits.length > 0
+    ? seasonsWithCredits.reduce((prev, curr) => {
+        const prevCrewCount = prev.credits.crew.filter(member =>
+          ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+        ).length;
+        const currCrewCount = curr.credits.crew.filter(member =>
+          ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+        ).length;
+        return currCrewCount > prevCrewCount ? curr : prev;
+      })
+    : null;
+  const fallbackCrew = fallbackSeason?.credits?.crew;
+  const crewData = (selectedSeason?.credits?.crew && selectedSeason.credits.crew.length > 0)
+    ? selectedSeason.credits.crew
+    : fallbackCrew || serie?.credits?.crew || [];
+  const filteredCrew = crewData.filter(member =>
+    ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+  );
+
+  // États pour la filmographie d’un acteur
+  const [selectedActor, setSelectedActor] = useState(null);
+  const [actorFilmography, setActorFilmography] = useState([]);
+  const [actorCarouselIndex, setActorCarouselIndex] = useState(0);
+  const cardWidth = 220; // Largeur d'une carte incluant marge
+
+  // États et ref pour l'animation de la filmographie (slide-down)
+  const [filmographyVisible, setFilmographyVisible] = useState(false);
+  const [filmographyMaxHeight, setFilmographyMaxHeight] = useState("0px");
+  const filmographyContentRef = useRef(null);
+
+  // Récupération des détails de la série et plateformes
   useEffect(() => {
     const fetchSerieDetails = async () => {
       try {
         const serieData = await getSerieById(id);
         setSerie(serieData);
         if (serieData.seasons && serieData.seasons.length > 0) {
-          // On filtre pour exclure la saison 0
           const validSeasons = serieData.seasons.filter(season => season.season_number > 0);
           if (validSeasons.length > 0) {
-            setSelectedSeason(validSeasons[0]);
+            // Si certaines saisons possèdent déjà des crédits, on sélectionne celle qui a le plus de membres d'équipe technique.
+            const seasonsWithCredits = validSeasons.filter(s => s.credits && s.credits.crew);
+            if (seasonsWithCredits.length > 0) {
+              const seasonWithMostCrew = seasonsWithCredits.reduce((prev, curr) => {
+                const prevCrewCount = prev.credits.crew.filter(member =>
+                  ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+                ).length;
+                const currCrewCount = curr.credits.crew.filter(member =>
+                  ['Director', 'Screenplay', 'Writer', 'Composer', 'Original Music Composer'].includes(member.job)
+                ).length;
+                return currCrewCount > prevCrewCount ? curr : prev;
+              });
+              setSelectedSeason(seasonWithMostCrew);
+            } else {
+              // Sinon, on prend la première saison
+              setSelectedSeason(validSeasons[0]);
+            }
           }
         }
         const selectedCountry = country || 'FR';
@@ -98,7 +146,28 @@ function SerieDetailPage() {
     fetchSerieDetails();
   }, [id, country]);
 
-  // Récupération de la préférence utilisateur pour cette série
+  // Mise à jour des crédits quand la saison sélectionnée change
+  useEffect(() => {
+    const fetchSeasonCredits = async () => {
+      if (serie && selectedSeason && !selectedSeason.credits) {
+        try {
+          const apiKey = process.env.API_KEY_TMDB || "4edc74f5d6c3356f7a70a0ff694ecf1b";
+          const seasonResponse = await fetch(
+            `https://api.themoviedb.org/3/tv/${serie.id}/season/${selectedSeason.season_number}?api_key=${apiKey}&language=fr-FR&append_to_response=credits`
+          );
+          const seasonData = await seasonResponse.json();
+          // Mise à jour de l'objet de la saison avec les crédits récupérés
+          setSelectedSeason(prev => ({ ...prev, credits: seasonData.credits }));
+        } catch (error) {
+          console.error("Erreur lors de la récupération des crédits de la saison:", error);
+        }
+      }
+    };
+
+    fetchSeasonCredits();
+  }, [selectedSeason, serie]);
+
+  // Préférence utilisateur
   useEffect(() => {
     const fetchUserPreference = async () => {
       try {
@@ -119,7 +188,7 @@ function SerieDetailPage() {
     }
   }, [serie]);
 
-  // Récupération des recommandations pour la série
+  // Recommandations
   useEffect(() => {
     if (serie) {
       fetch(`${process.env.REACT_APP_API_URL}/series/recommended/${serie.id}`)
@@ -148,7 +217,7 @@ function SerieDetailPage() {
     }
   }, [serie]);
 
-  // Mise à jour des mesures pour le carrousel des recommandations de séries
+  // Mise à jour du carrousel des recommandations
   useEffect(() => {
     const updateRecMeasurementsSeries = () => {
       if (recCardRefSeries.current && recommendedSeries.length > 0) {
@@ -175,10 +244,10 @@ function SerieDetailPage() {
   }, [recommendedSeries, recStartIndexSeries]);
 
   const handleRecNextSeries = () => setRecStartIndexSeries(prev => prev + 1);
-  const handleRecPreviousSeries = () => setRecStartIndexSeries(prev => prev > 0 ? prev - 1 : 0);
+  const handleRecPreviousSeries = () => setRecStartIndexSeries(prev => (prev > 0 ? prev - 1 : 0));
   const isRecNextDisabledSeries = () => recTranslateXSeries >= recMaxTranslateXSeries;
 
-  // Gestion du clic sur un pouce
+  // Like / Dislike
   const handleOpinion = async (opinion) => {
     if (!isAuthenticated) {
       alert(t('loginPrompt') || "Veuillez vous connecter pour noter la série.");
@@ -196,7 +265,7 @@ function SerieDetailPage() {
     try {
       await addPreference({
         movieId: serie.id,
-        liked: (opinion === 'like'),
+        liked: opinion === 'like',
         mediaType: 'serie'
       });
       setUserOpinion(opinion);
@@ -213,11 +282,74 @@ function SerieDetailPage() {
     scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
   };
 
+  // Modification de la filmographie avec animation slide-down
+  const handleActorClick = (actor, e) => {
+    if (selectedActor && selectedActor.id === actor.id) {
+      // Lancement de l'animation de fermeture
+      setFilmographyVisible(false);
+      setTimeout(() => {
+        setSelectedActor(null);
+        setActorFilmography([]);
+        setActorCarouselIndex(0);
+      }, 500); // durée de la transition
+    } else {
+      setSelectedActor(actor);
+      fetchActorFilmography(actor.id);
+      setActorCarouselIndex(0);
+      // Légère attente avant l'affichage de la filmographie
+      setTimeout(() => {
+        setFilmographyVisible(true);
+      }, 50);
+    }
+  };
+
+  const fetchActorFilmography = async (actorId) => {
+    try {
+      const apiKey = process.env.API_KEY_TMDB || "4edc74f5d6c3356f7a70a0ff694ecf1b";
+      const response = await fetch(
+        `https://api.themoviedb.org/3/person/${actorId}/combined_credits?api_key=${apiKey}&language=fr-FR`
+      );
+      const data = await response.json();
+      let filmography = data.cast.filter(item =>
+        item.media_type === 'movie' || item.media_type === 'tv'
+      );
+      // Retirer les doublons (basé sur id et media_type)
+      filmography = filmography.filter((item, index, self) =>
+        index === self.findIndex((t) => t.id === item.id && t.media_type === item.media_type)
+      );
+      filmography.sort((a, b) => {
+        const dateA = new Date(a.release_date || a.first_air_date);
+        const dateB = new Date(b.release_date || b.first_air_date);
+        return dateB - dateA;
+      });
+      setActorFilmography(filmography);
+    } catch (error) {
+      console.error("Erreur lors de la récupération de la filmographie de l'acteur:", error);
+    }
+  };
+
+  const handleActorCarouselPrevious = () => {
+    setActorCarouselIndex(prev => (prev > 0 ? prev - 1 : 0));
+  };
+  const handleActorCarouselNext = () => {
+    const maxIndex = Math.max(actorFilmography.length - 3, 0); // Supposons 3 cartes visibles
+    setActorCarouselIndex(prev => (prev < maxIndex ? prev + 1 : prev));
+  };
+
+  // Effet pour gérer l'animation de la filmographie (max-height et opacité)
+  useEffect(() => {
+    if (filmographyVisible && filmographyContentRef.current) {
+      setFilmographyMaxHeight(filmographyContentRef.current.scrollHeight + "px");
+    } else {
+      setFilmographyMaxHeight("0px");
+    }
+  }, [filmographyVisible, actorFilmography]);
+
   if (!serie) return <p className="text-center text-xl">{t('loading')}</p>;
 
   return (
     <div className={`container mx-auto px-4 py-8 mt-12 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} rounded-lg shadow-lg`}>
-      {/* Partie informations principales de la série */}
+      {/* Informations principales de la série */}
       <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img src={serie.posterUrl} alt={serie.title || serie.name} className="w-full max-w-sm rounded-lg shadow-lg mb-4 md:mb-0" />
         <div className="md:flex-1 space-y-4">
@@ -235,7 +367,7 @@ function SerieDetailPage() {
           </div>
           <p className="text-gray-700 dark:text-gray-300 text-lg mb-6">{serie.overview}</p>
 
-          {/* Sélection de saison (en excluant la saison 0) */}
+          {/* Sélection de saison */}
           {serie.seasons && serie.seasons.filter(s => s.season_number > 0).length > 0 && (
             <div className="my-4">
               <label htmlFor="season-select" className="block font-semibold mb-2">
@@ -346,11 +478,12 @@ function SerieDetailPage() {
         >
           &lt;
         </button>
-        <div ref={scrollRef} className="flex overflow-x-scroll space-x-4 pb-4 scrollbar-hide">
-          {serie.credits?.cast.slice(0, 12).map((actor) => (
+        <div ref={scrollRef} className="flex overflow-x-scroll space-x-4 pt-4 pb-4 scrollbar-hide">
+          {(selectedSeason?.credits?.cast || serie.credits?.cast).map((actor) => (
             <div
               key={actor.id}
-              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+              onClick={(e) => handleActorClick(actor, e)}
+              className={`flex-none w-36 text-center p-4 rounded-lg shadow-md cursor-pointer ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${selectedActor && selectedActor.id === actor.id ? 'ring-4 ring-indigo-500' : ''}`}
             >
               <img
                 src={
@@ -375,6 +508,71 @@ function SerieDetailPage() {
           &gt;
         </button>
       </div>
+
+      {/* Filmographie avec animation slide-down */}
+      {selectedActor && (
+        <div className={`filmography-container rounded-lg shadow-lg p-4 mt-4 ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+          style={{
+            maxHeight: filmographyMaxHeight,
+            opacity: filmographyVisible ? 1 : 0,
+            overflow: 'hidden',
+            transition: 'max-height 500ms ease-in-out, opacity 500ms ease-in-out'
+          }}>
+          <div ref={filmographyContentRef}>
+            <style>{`
+              .filmography-card h3 {
+                color: ${theme === 'dark' ? '#ffffff' : '#1a202c'} !important;
+              }
+            `}</style>
+            <div className="flex items-center space-x-4 mb-4">
+              <img src={selectedActor.profile_path ? `https://image.tmdb.org/t/p/w185${selectedActor.profile_path}` : 'https://cdn.icon-icons.com/icons2/154/PNG/512/user_21980.png'}
+                alt={selectedActor.name}
+                className="w-24 h-24 object-cover rounded-full" />
+              <h3 className="text-2xl font-bold">{selectedActor.name}</h3>
+            </div>
+            <div className="relative">
+              <button onClick={handleActorCarouselPrevious}
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+                &lt;
+              </button>
+              <div className="overflow-x-hidden pb-8">
+                <div className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${actorCarouselIndex * cardWidth}px)` }}>
+                  {actorFilmography.length > 0 ? (
+                    actorFilmography.map((credit) => (
+                      <div key={credit.id} className="flex-shrink-0 mr-4 filmography-card">
+                        {credit.media_type === 'movie' ? (
+                          <MovieCard
+                            item={{
+                              id: credit.id,
+                              image: credit.poster_path ? `https://image.tmdb.org/t/p/w500${credit.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image',
+                              title: credit.title || credit.original_title,
+                            }}
+                          />
+                        ) : (
+                          <SerieCard
+                            serie={{
+                              id: credit.id,
+                              posterUrl: credit.poster_path ? `https://image.tmdb.org/t/p/w500${credit.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image',
+                              title: credit.name || credit.original_name,
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="p-4">{t('noFilmographyFound') || "Aucune filmographie trouvée."}</p>
+                  )}
+                </div>
+              </div>
+              <button onClick={handleActorCarouselNext}
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+                &gt;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section Équipe Technique */}
       {serie.credits?.crew && filteredCrew.length > 0 && (
@@ -419,7 +617,7 @@ function SerieDetailPage() {
         </>
       )}
 
-      {/* Section Recommandations pour les séries */}
+      {/* Section Recommandations */}
       <div className="mt-8">
         <h2 className="text-3xl font-semibold text-center mb-4">{t('recommendedSeries')}</h2>
         { recLoadingSeries ? (
