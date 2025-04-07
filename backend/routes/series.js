@@ -15,4 +15,6 @@ router.get('/:id', seriesController.getSeriesDetail);
 // Optionnel : Marquer une série comme vue pour l'utilisateur
 router.post('/:id/mark-seen', seriesController.markAsSeen);
 
+router.get('/recommended/:serieId', seriesController.getRecommendedSeries);
+
 module.exports = router;

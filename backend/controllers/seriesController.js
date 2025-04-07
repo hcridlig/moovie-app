@@ -1,11 +1,13 @@
 // backend/controllers/seriesController.js
 const axios = require('axios');
+const { SerieEmbedding, sequelize } = require('../models');
 
 // Récupère la clé TMDB depuis les variables d'environnement
 // Assure-toi que "API_KEY_TMDB" est bien configuré en local ET sur Azure
 const TMDB_API_KEY = process.env.API_KEY_TMDB || 'YOUR_KEY_HERE';
 
-module.exports = {
+
+const seriesController = {
   /**
    * ----------------
    * getTrendingSeries
@@ -187,4 +189,62 @@ module.exports = {
     }
   },
 
+  /**
+   * ---------------
+   * getRecommendedSeries
+   * ---------------
+   */
+  getRecommendedSeries: async (req, res) => {
+    const { serieId } = req.params;
+      const limit = 6;
+      try {
+        // Fetch the embedding for the given movie_id
+        const serieEmbedding = await SerieEmbedding.findByPk(serieId);
+        if (!serieEmbedding) {
+          throw new Error('Serie embedding not found');
+        }
+    
+        // Execute the SQL command to find the nearest neighbors
+        const nearestNeighbors = await sequelize.query(
+          `SELECT * FROM serie_embeddings ORDER BY embeddings <-> (SELECT embeddings FROM serie_embeddings WHERE serie_id = :serieId) LIMIT :limit`,
+          {
+            replacements: { serieId, limit },
+            type: sequelize.QueryTypes.SELECT,
+          }
+        );
+        
+        // Fetch movie names from TMDB
+        const neighborsWithNames = await Promise.all(
+          nearestNeighbors.map(async (neighbor) => {
+            const serieName = await seriesController.getSerieNameFromTmdb(neighbor.serie_id);
+            return { ...neighbor, serie_name: serieName };
+          })
+        );
+
+        // Return the list of recommended movies
+        res.json(neighborsWithNames);
+      } catch (error) {
+        console.error('Error calculating nearest neighbors:', error);
+        throw error;
+  }
+},
+
+async getSerieNameFromTmdb(serieId) {
+      const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+      console.log('getSerieNameFromTmdb() - serieId:', serieId);
+      try {
+        const response = await axios.get(`${TMDB_BASE_URL}/tv/${serieId}`, {
+          params: {
+            api_key: process.env.API_KEY_TMDB,
+          },
+        });
+        return response.data.name;
+      } catch (error) {
+        console.error('Error fetching movie name from TMDB:', error);
+        throw error;
+      }
+    }
+
 };
+
+module.exports = seriesController;

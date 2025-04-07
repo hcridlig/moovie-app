@@ -5,6 +5,7 @@ const sequelize = require('../config/db'); // Assuming config/db.js exports a Se
 const User = require('./User'); // User model
 const Preference = require('./Preference'); // Preference model
 const MovieEmbedding = require('./MovieEmbedding'); // MovieEmbedding model
+const SerieEmbedding = require('./SerieEmbedding'); // SerieEmbedding model
 
 // Define relationships
 User.hasMany(Preference, { foreignKey: 'user_id', as: 'preferences' });
@@ -20,4 +21,4 @@ const syncModels = async () => {
   }
 };
 
-module.exports = { User, Preference, MovieEmbedding, syncModels, sequelize };
+module.exports = { User, Preference, MovieEmbedding, SerieEmbedding, syncModels, sequelize };
