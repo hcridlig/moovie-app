@@ -136,9 +136,7 @@ function HomePage() {
   // Chargement des recommandations (films uniquement) pour l'utilisateur connecté
   useEffect(() => {
     if (isAuthenticated) {
-      // Vous pouvez ajouter ici des query params spécifiques, si nécessaire
-      const platformsQuery = '';
-      fetch(`/api/recommendations/movies${platformsQuery}`)
+      fetch(`${process.env.REACT_APP_API_URL}/me/recommendations`)
         .then((response) => response.json())
         .then((data) => {
           setRecommendedMovies(data);

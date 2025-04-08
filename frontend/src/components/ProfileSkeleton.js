@@ -14,14 +14,6 @@ function ProfileSkeleton({ theme }) {
           <div className={`h-6 w-3/4 ${bgClass} rounded mb-2`}></div>
           <div className={`h-4 w-1/2 ${secondaryBgClass} rounded`}></div>
         </div>
-        <div className="mb-4">
-          <div className={`h-6 w-3/4 ${bgClass} rounded mb-2`}></div>
-          <div className={`h-4 w-1/2 ${secondaryBgClass} rounded`}></div>
-        </div>
-        <div className="mb-4">
-          <div className={`h-6 w-3/4 ${bgClass} rounded mb-2`}></div>
-          <div className={`h-4 w-1/2 ${secondaryBgClass} rounded`}></div>
-        </div>
       </div>
     </div>
   );
