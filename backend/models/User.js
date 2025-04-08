@@ -35,6 +35,10 @@ const User = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    user_embedding: {
+      type: DataTypes.ARRAY(DataTypes.FLOAT),
+      allowNull: true,
+    },
   },
   {
     tableName: 'users',

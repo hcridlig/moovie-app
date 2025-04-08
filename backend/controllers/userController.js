@@ -1,6 +1,7 @@
-const { User, Preference } = require('../models');
+const { User, Preference, sequelize } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { get } = require('../routes/users');
 
 const userController = {
   getAllUsers: async (req, res) => {
@@ -169,7 +170,91 @@ const userController = {
         console.error('Erreur lors de la récupération des préférences', error);
         res.status(500).json({ error: 'Erreur interne du serveur' });
     }
-  }
+  },
+
+  /*getRecommendations: async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Accès non autorisé' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET); // Ensure JWT_SECRET is set in env variables
+        const userId = decoded.id;
+
+        const preferences = await sequelize.query(
+            `SELECT m.movie_id
+            FROM users u, movie_embeddings m
+            WHERE u.user_id = :userId
+            ORDER BY u.user_embedding <#> m.embeddings ASC  -- or DESC depending on operator
+            LIMIT 10;`,
+            {
+                replacements: { userId },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+        
+
+
+        res.json(preferences);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des recommandations', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+  }*/
+
+    getRecommendations: async (req, res) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Accès non autorisé' });
+      }
+  
+      const token = authHeader.split(' ')[1];
+  
+      try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET); // Ensure JWT_SECRET is set in env variables
+          const userId = decoded.id;
+  
+          const preferences = await sequelize.query(
+              `WITH liked_movies AS (
+              SELECT movie_id
+              FROM preferences
+              WHERE user_id = :userId AND liked = TRUE AND media_type = 'movie'
+            ),
+                      
+                      
+            liked_embeddings AS (
+              SELECT movie_id, embeddings
+              FROM movie_embeddings
+              WHERE movie_id IN (SELECT movie_id FROM liked_movies)
+            )
+                      
+                      
+            SELECT  me.movie_id AS neighbor_movie_id
+            FROM liked_embeddings lm
+            JOIN movie_embeddings me
+            ON lm.movie_id != me.movie_id
+            ORDER BY lm.movie_id, me.embeddings <=> lm.embeddings
+            LIMIT (SELECT COUNT(*) * 3 FROM liked_movies);`,
+              {
+                  replacements: { userId },
+                  type: sequelize.QueryTypes.SELECT,
+              }
+          );
+          
+  
+  
+          res.json(preferences);
+      } catch (error) {
+          console.error('Erreur lors de la récupération des recommandations', error);
+          res.status(500).json({ error: 'Erreur interne du serveur' });
+      }
+    }
+
+
+  
 };
 
 module.exports = userController;

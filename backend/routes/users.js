@@ -25,4 +25,7 @@ router.get('/me/preferences', authMiddleware, userController.getPreferences);
 // Supprimer une préférence
 router.delete('/me/preferences', authMiddleware, userController.deletePreference);
 
+//Récupérer les recommendations de l'utilisateur
+router.get('/me/recommendations', authMiddleware, userController.getRecommendations);
+
 module.exports = router;
