@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import MovieCard from '../components/MovieCard';
 import MovieSkeleton from '../components/MovieSkeleton';
 import SerieCard from '../components/SerieCard';
-import { getTopMovies, getTopSeries } from '../utils/api';
+import { getTopMovies, getTopSeries, getMovieById } from '../utils/api';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
@@ -25,7 +25,7 @@ function HomePage() {
   const [seriesTranslateX, setSeriesTranslateX] = useState(0);
   const [seriesMaxTranslateX, setSeriesMaxTranslateX] = useState(0);
 
-  // États pour les recommandations films uniquement
+  // États pour les recommandations (films uniquement)
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [recMoviesStartIndex, setRecMoviesStartIndex] = useState(0);
   const [isLoadingRecMovies, setIsLoadingRecMovies] = useState(true);
@@ -37,7 +37,6 @@ function HomePage() {
   const { theme } = useContext(SettingsContext);
   const { t } = useTranslation();
   const location = useLocation();
-  // Utilisation de isAuthenticated (voir AuthContext.js)
   const { isAuthenticated } = useContext(AuthContext);
   const [toastMessage, setToastMessage] = useState(location.state?.deletionMessage || '');
 
@@ -133,17 +132,35 @@ function HomePage() {
   const handleSeriesPrevious = () => setSeriesStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
   const isSeriesNextDisabled = () => seriesTranslateX >= seriesMaxTranslateX;
 
-  // Chargement des recommandations (films uniquement) pour l'utilisateur connecté
+  // Chargement des recommandations (films) pour l'utilisateur connecté
   useEffect(() => {
     if (isAuthenticated) {
-      fetch(`${process.env.REACT_APP_API_URL}/me/recommendations`)
+      const token = localStorage.getItem('token');
+      fetch(`${process.env.REACT_APP_API_URL}/users/me/recommendations`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
         .then((response) => response.json())
-        .then((data) => {
-          setRecommendedMovies(data);
+        .then(async (data) => {
+          // data est un tableau d'objets { neighbor_movie_id: 1234, ... }
+          // Pour chaque neighbor_movie_id, on récupère le vrai film (titre, image, etc.) via getMovieById
+          const moviesWithDetails = await Promise.all(
+            data.map(async (item) => {
+              const details = await getMovieById(item.neighbor_movie_id);
+              // details inclut le poster_path => details.image, le titre => details.title, etc.
+              return {
+                ...details, // inclut .id, .title, .image, etc.
+                id: details.id, // rassure qu'on utilise l'id correct
+              };
+            })
+          );
+          setRecommendedMovies(moviesWithDetails);
           setIsLoadingRecMovies(false);
         })
         .catch((error) => {
-          console.error("Erreur lors de la récupération des films recommandés:", error);
+          console.error('Erreur lors de la récupération des films recommandés:', error);
           setIsLoadingRecMovies(false);
         });
     } else {
@@ -151,7 +168,7 @@ function HomePage() {
     }
   }, [isAuthenticated]);
 
-  // Calcul du translateX pour le carrousel des films recommandés
+  // Calcul du translateX pour le carrousel des recommandations
   useEffect(() => {
     const updateRecMovieMeasurements = () => {
       if (recMovieCardRef.current) {
@@ -181,7 +198,11 @@ function HomePage() {
   return (
     <div className={`container mx-auto px-4 mt-20 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>
       {toastMessage && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mt-14 px-4 py-2 rounded shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-green-500 text-white'}`}>
+        <div
+          className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mt-14 px-4 py-2 rounded shadow-md ${
+            theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-green-500 text-white'
+          }`}
+        >
           {toastMessage}
         </div>
       )}
@@ -190,25 +211,44 @@ function HomePage() {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">{t('topMoviesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
-          <button onClick={handlePrevious} disabled={startIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+          <button
+            onClick={handlePrevious}
+            disabled={startIndex === 0}
+            className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+          >
             &lt;
           </button>
           <div className="overflow-x-hidden mx-auto py-4 carousel-container">
-            <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${translateX}px)` }}>
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${translateX}px)` }}
+            >
               {isLoading
                 ? Array.from({ length: 5 }).map((_, idx) => (
-                    <div key={idx} ref={idx === 0 ? cardRef : null} className={`flex-shrink-0 ${idx !== topMovies.length - 1 ? 'mr-10' : ''}`}>
+                    <div
+                      key={idx}
+                      ref={idx === 0 ? cardRef : null}
+                      className={`flex-shrink-0 ${idx !== topMovies.length - 1 ? 'mr-10' : ''}`}
+                    >
                       <MovieSkeleton />
                     </div>
                   ))
                 : topMovies.map((item, idx) => (
-                    <div key={`${item.id}-${idx}`} ref={idx === 0 ? cardRef : null} className={`flex-shrink-0 ${idx !== topMovies.length - 1 ? 'mr-10' : ''}`}>
+                    <div
+                      key={`${item.id}-${idx}`}
+                      ref={idx === 0 ? cardRef : null}
+                      className={`flex-shrink-0 ${idx !== topMovies.length - 1 ? 'mr-10' : ''}`}
+                    >
                       <MovieCard item={item} index={idx + 1} />
                     </div>
                   ))}
             </div>
           </div>
-          <button onClick={handleNext} disabled={isNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+          <button
+            onClick={handleNext}
+            disabled={isNextDisabled()}
+            className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+          >
             &gt;
           </button>
         </div>
@@ -218,54 +258,92 @@ function HomePage() {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">{t('topSeriesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
-          <button onClick={handleSeriesPrevious} disabled={seriesStartIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+          <button
+            onClick={handleSeriesPrevious}
+            disabled={seriesStartIndex === 0}
+            className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+          >
             &lt;
           </button>
           <div className="overflow-x-hidden mx-auto py-4 series-carousel-container">
-            <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${seriesTranslateX}px)` }}>
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${seriesTranslateX}px)` }}
+            >
               {isLoadingSeries
                 ? Array.from({ length: 5 }).map((_, idx) => (
-                    <div key={idx} ref={idx === 0 ? seriesCardRef : null} className={`flex-shrink-0 ${idx !== topSeries.length - 1 ? 'mr-10' : ''}`}>
+                    <div
+                      key={idx}
+                      ref={idx === 0 ? seriesCardRef : null}
+                      className={`flex-shrink-0 ${idx !== topSeries.length - 1 ? 'mr-10' : ''}`}
+                    >
                       <MovieSkeleton />
                     </div>
                   ))
                 : topSeries.map((item, idx) => (
-                    <div key={item.id} ref={idx === 0 ? seriesCardRef : null} className={`flex-shrink-0 ${idx !== topSeries.length - 1 ? 'mr-10' : ''}`}>
+                    <div
+                      key={item.id}
+                      ref={idx === 0 ? seriesCardRef : null}
+                      className={`flex-shrink-0 ${idx !== topSeries.length - 1 ? 'mr-10' : ''}`}
+                    >
                       <SerieCard serie={item} index={idx + 1} />
                     </div>
                   ))}
             </div>
           </div>
-          <button onClick={handleSeriesNext} disabled={isSeriesNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+          <button
+            onClick={handleSeriesNext}
+            disabled={isSeriesNextDisabled()}
+            className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+          >
             &gt;
           </button>
         </div>
       </section>
 
-      {/* Section Recommandations (films uniquement, affichée si l'utilisateur est authentifié) */}
+      {/* Section Recommandations (affichée si l'utilisateur est authentifié) */}
       {isAuthenticated && (
         <section className="mt-12">
           <h2 className="text-2xl font-bold mb-4">Recommandations pour vous</h2>
           <div className="relative flex items-center justify-center mb-8">
-            <button onClick={handleRecMoviesPrevious} disabled={recMoviesStartIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+            <button
+              onClick={handleRecMoviesPrevious}
+              disabled={recMoviesStartIndex === 0}
+              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
               &lt;
             </button>
             <div className="overflow-x-hidden mx-auto py-4 rec-movies-carousel-container">
-              <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${recMoviesTranslateX}px)` }}>
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${recMoviesTranslateX}px)` }}
+              >
                 {isLoadingRecMovies
                   ? Array.from({ length: 5 }).map((_, idx) => (
-                      <div key={idx} ref={idx === 0 ? recMovieCardRef : null} className={`flex-shrink-0 ${idx !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}>
+                      <div
+                        key={idx}
+                        ref={idx === 0 ? recMovieCardRef : null}
+                        className={`flex-shrink-0 ${idx !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}
+                      >
                         <MovieSkeleton />
                       </div>
                     ))
                   : recommendedMovies.map((item, idx) => (
-                      <div key={`${item.id}-${idx}`} ref={idx === 0 ? recMovieCardRef : null} className={`flex-shrink-0 ${idx !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}>
+                      <div
+                        key={`${item.id}-${idx}`}
+                        ref={idx === 0 ? recMovieCardRef : null}
+                        className={`flex-shrink-0 ${idx !== recommendedMovies.length - 1 ? 'mr-10' : ''}`}
+                      >
                         <MovieCard item={item} index={idx + 1} />
                       </div>
                     ))}
               </div>
             </div>
-            <button onClick={handleRecMoviesNext} disabled={isRecMoviesNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
+            <button
+              onClick={handleRecMoviesNext}
+              disabled={isRecMoviesNextDisabled()}
+              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
+            >
               &gt;
             </button>
           </div>
