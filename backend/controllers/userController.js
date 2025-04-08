@@ -26,23 +26,32 @@ const userController = {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findOne({
         where: { user_id: decoded.id },
-        attributes: { exclude: ['password'] },
-        include: [{
-          model: UserPlatform,
-          as: 'platforms',
-          attributes: ['platform_id']
-        }]
+        attributes: { exclude: ['password'] }
       });
       if (!user) {
         return res.status(404).json({ message: 'Utilisateur non trouvé.' });
       }
-      // Transformation de l'objet utilisateur pour créer "streamingPlatforms"
-      const userPlain = user.get({ plain: true });
-      userPlain.streamingPlatforms = userPlain.platforms ? userPlain.platforms.map(p => p.platform_id) : [];
-      delete userPlain.platforms;
-      res.json(userPlain);
+      res.json(user);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération du profil.' });
+    }
+  },
+
+  updateProfile: async (req, res) => {
+    try {
+      const [affectedRows, [updatedUser]] = await User.update(req.body, {
+        where: { user_id: req.user.id },
+        returning: true,
+        individualHooks: true
+      });
+      if (affectedRows === 0) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+      }
+      const userWithoutPassword = updatedUser.get({ plain: true });
+      delete userWithoutPassword.password;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la mise à jour du profil.' });
     }
   },
 
