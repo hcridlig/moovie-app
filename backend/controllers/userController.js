@@ -69,7 +69,7 @@ const userController = {
       
       let updatedUser;
       // Si on a des champs à mettre à jour pour l'utilisateur
-      if (Object.keys(fieldsToUpdate).length > 0) {
+      if (Object.keys(fieldsToUpdate).length > 0 && !streamingPlatforms) {
         const [affectedRows, [userUpdated]] = await User.update(fieldsToUpdate, {
           where: { user_id: userId },
           returning: true,
@@ -92,12 +92,24 @@ const userController = {
         });
         // Si on a des plateformes, créer de nouvelles associations
         if (streamingPlatforms.length > 0) {
-          const newAssociations = streamingPlatforms.map(pid => ({
-            user_id: userId,
-            platform_id: Number(pid) // conversion en nombre
-          }));
-          await UserPlatform.bulkCreate(newAssociations);
+          const values = streamingPlatforms
+            .map((platformId, index) => `(:userId, :platform${index})`)
+            .join(',');
+        
+          const replacements = { userId };
+          streamingPlatforms.forEach((platformId, index) => {
+            replacements[`platform${index}`] = platformId;
+          });
+        
+          const result = await sequelize.query(
+            `INSERT INTO "userplatforms" ("user_id", "platform_id") VALUES ${values} RETURNING "user_id", "platform_id"`,
+            {
+              replacements,
+              type: sequelize.QueryTypes.INSERT
+            }
+          );
         }
+        
       }
       
       // Récupérer les plateformes mises à jour
