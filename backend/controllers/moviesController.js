@@ -29,7 +29,10 @@ const moviesController = {
     
         // Execute the SQL command to find the nearest neighbors
         const nearestNeighbors = await sequelize.query(
-          `SELECT * FROM movie_embeddings ORDER BY embeddings <-> (SELECT embeddings FROM movie_embeddings WHERE movie_id = :movieId) LIMIT :limit`,
+          `SELECT * FROM movie_embeddings 
+          WHERE movie_id != :movieId 
+          ORDER BY embeddings <-> (SELECT embeddings FROM movie_embeddings WHERE movie_id = :movieId) 
+          LIMIT :limit`,
           {
             replacements: { movieId, limit },
             type: sequelize.QueryTypes.SELECT,
