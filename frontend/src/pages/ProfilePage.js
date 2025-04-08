@@ -11,8 +11,9 @@ function ProfilePage() {
   const { theme, country } = useContext(SettingsContext);
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { updateUser } = useContext(AuthContext);
 
-  // On initialise l'état avec les clés attendues
+  // État utilisateur avec sa configuration initiale
   const [user, setUser] = useState({ user_id: null, username: '', email: '', created_at: '', streamingPlatforms: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -24,9 +25,8 @@ function ProfilePage() {
   const [availablePlatforms, setAvailablePlatforms] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fonction pour normaliser la réponse de l'API
+  // Normalisation des données du profil pour avoir toujours une propriété streamingPlatforms
   const normalizeProfile = (data) => {
-    // Si la réponse contient la clé "user", on extrait ses infos et les plateformes
     if (data.user) {
       return {
         user_id: data.user.user_id,
@@ -35,9 +35,15 @@ function ProfilePage() {
         created_at: data.user.created_at || data.user.createdAt || null,
         streamingPlatforms: data.platforms || []
       };
+    } else {
+      return {
+        user_id: data.user_id || null,
+        username: data.username,
+        email: data.email,
+        created_at: data.created_at || data.createdAt || null,
+        streamingPlatforms: data.streamingPlatforms || data.platforms || []
+      };
     }
-    // Sinon, on suppose que la réponse est déjà normalisée (cas de la mise à jour)
-    return data;
   };
 
   // Chargement initial du profil utilisateur
@@ -66,7 +72,7 @@ function ProfilePage() {
     }
   }, [navigate, t]);
 
-  // Chargement des plateformes de streaming disponibles en fonction du pays
+  // Chargement des plateformes de streaming disponibles selon le pays
   useEffect(() => {
     async function loadPlatforms() {
       try {
@@ -79,18 +85,22 @@ function ProfilePage() {
     loadPlatforms();
   }, [country]);
 
+  // Gestion des changements dans les inputs texte
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUpdatedUser(prevState => ({ ...prevState, [name]: value }));
   };
 
-  // Gestion de la modification des plateformes sélectionnées
+  // Gestion des modifications des cases à cocher des plateformes
   const handlePlatformChange = (e, platformId) => {
+    const numericPlatformId = Number(platformId);
     let updatedPlatforms = updatedUser.streamingPlatforms || [];
     if (e.target.checked) {
-      updatedPlatforms = [...updatedPlatforms, platformId];
+      if (!updatedPlatforms.includes(numericPlatformId)) {
+        updatedPlatforms = [...updatedPlatforms, numericPlatformId];
+      }
     } else {
-      updatedPlatforms = updatedPlatforms.filter(id => id !== platformId);
+      updatedPlatforms = updatedPlatforms.filter(id => id !== numericPlatformId);
     }
     setUpdatedUser(prev => ({ ...prev, streamingPlatforms: updatedPlatforms }));
   };
@@ -100,7 +110,7 @@ function ProfilePage() {
     setPasswordData(prevState => ({ ...prevState, [name]: value }));
   };
 
-  // Soumission du formulaire de mise à jour du profil
+  // Soumission de la modification du profil général (nom, email et plateformes)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -112,13 +122,15 @@ function ProfilePage() {
         email: normalizedProfile.email,
         streamingPlatforms: normalizedProfile.streamingPlatforms
       });
+      // Mise à jour du nom dans le contexte global
+      updateUser(normalizedProfile.username);
       setEditing(false);
     } catch (error) {
       console.error(t('errorUpdatingProfile'), error);
     }
   };
 
-  // Soumission du formulaire de modification du mot de passe
+  // Soumission du changement de mot de passe
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -147,6 +159,7 @@ function ProfilePage() {
     setEditing(false);
   };
 
+  // Soumission de la modification des plateformes uniquement
   const handlePlatformsSubmit = async () => {
     try {
       const response = await updateUserProfile(updatedUser);
@@ -172,7 +185,6 @@ function ProfilePage() {
     setPasswordEditing(false);
   };
 
-  // Suppression du compte
   const handleDeleteAccount = async () => {
     try {
       await deleteAccount();
@@ -187,7 +199,7 @@ function ProfilePage() {
   return (
     <div className={`container mx-auto px-4 py-8 mt-12 max-w-lg ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>
       <h1 className="text-3xl font-bold mb-4">{t('profile')}</h1>
-
+      
       {/* Bloc d'informations personnelles */}
       <div className={`p-6 rounded-lg shadow-md ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
         <div className="mb-4">
@@ -316,7 +328,7 @@ function ProfilePage() {
                     <input
                       type="checkbox"
                       value={provider.provider_id}
-                      checked={updatedUser.streamingPlatforms.includes(provider.provider_id)}
+                      checked={updatedUser.streamingPlatforms.includes(Number(provider.provider_id))}
                       onChange={(e) => handlePlatformChange(e, provider.provider_id)}
                       className="form-checkbox h-5 w-5 text-blue-600"
                     />
@@ -335,7 +347,7 @@ function ProfilePage() {
               <div className="flex flex-wrap gap-2">
                 {user.streamingPlatforms && user.streamingPlatforms.length > 0 ? (
                   availablePlatforms
-                    .filter((provider) => user.streamingPlatforms.includes(provider.provider_id))
+                    .filter((provider) => user.streamingPlatforms.includes(Number(provider.provider_id)))
                     .map((provider) => (
                       <div key={provider.provider_id} className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-full">
                         {provider.logo_path && (
@@ -386,9 +398,7 @@ function ProfilePage() {
           <div className="absolute inset-0 bg-black opacity-50"></div>
           <div className={`relative z-50 p-8 rounded-lg ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} shadow-lg max-w-lg w-full`}>
             <h3 className="text-2xl font-bold mb-6">{t('deleteAccount')}</h3>
-            <p className="mb-8 text-lg">
-              {t('deleteAccountWarning')}
-            </p>
+            <p className="mb-8 text-lg">{t('deleteAccountWarning')}</p>
             <div className="flex space-x-4">
               <button onClick={() => setShowDeleteModal(false)} className="w-1/2 bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
                 {t('cancelChanges')}
