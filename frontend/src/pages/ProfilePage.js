@@ -1,4 +1,3 @@
-// ProfilePage.js
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, updatePassword, deleteAccount, getPlatforms } from '../utils/api';
@@ -13,7 +12,8 @@ function ProfilePage() {
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [user, setUser] = useState({ username: '', email: '', created_at: '', streamingPlatforms: [] });
+  // On initialise l'état avec les clés attendues
+  const [user, setUser] = useState({ user_id: null, username: '', email: '', created_at: '', streamingPlatforms: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState({ username: '', email: '', streamingPlatforms: [] });
@@ -24,7 +24,23 @@ function ProfilePage() {
   const [availablePlatforms, setAvailablePlatforms] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Chargement du profil utilisateur
+  // Fonction pour normaliser la réponse de l'API
+  const normalizeProfile = (data) => {
+    // Si la réponse contient la clé "user", on extrait ses infos et les plateformes
+    if (data.user) {
+      return {
+        user_id: data.user.user_id,
+        username: data.user.username,
+        email: data.user.email,
+        created_at: data.user.created_at || data.user.createdAt || null,
+        streamingPlatforms: data.platforms || []
+      };
+    }
+    // Sinon, on suppose que la réponse est déjà normalisée (cas de la mise à jour)
+    return data;
+  };
+
+  // Chargement initial du profil utilisateur
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -32,12 +48,13 @@ function ProfilePage() {
     } else {
       async function fetchUserProfile() {
         try {
-          const profileData = await getUserProfile();
-          setUser(profileData);
+          const data = await getUserProfile();
+          const profile = normalizeProfile(data);
+          setUser(profile);
           setUpdatedUser({
-            username: profileData.username,
-            email: profileData.email,
-            streamingPlatforms: profileData.streamingPlatforms || []
+            username: profile.username,
+            email: profile.email,
+            streamingPlatforms: profile.streamingPlatforms
           });
         } catch (error) {
           console.error(t('errorFetchingData'), error);
@@ -64,7 +81,7 @@ function ProfilePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser((prevState) => ({ ...prevState, [name]: value }));
+    setUpdatedUser(prevState => ({ ...prevState, [name]: value }));
   };
 
   // Gestion de la modification des plateformes sélectionnées
@@ -73,27 +90,35 @@ function ProfilePage() {
     if (e.target.checked) {
       updatedPlatforms = [...updatedPlatforms, platformId];
     } else {
-      updatedPlatforms = updatedPlatforms.filter((id) => id !== platformId);
+      updatedPlatforms = updatedPlatforms.filter(id => id !== platformId);
     }
-    setUpdatedUser((prev) => ({ ...prev, streamingPlatforms: updatedPlatforms }));
+    setUpdatedUser(prev => ({ ...prev, streamingPlatforms: updatedPlatforms }));
   };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData((prevState) => ({ ...prevState, [name]: value }));
+    setPasswordData(prevState => ({ ...prevState, [name]: value }));
   };
 
+  // Soumission du formulaire de mise à jour du profil
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await updateUserProfile(updatedUser);
-      setUser(updatedUser);
+      const response = await updateUserProfile(updatedUser);
+      const normalizedProfile = normalizeProfile(response);
+      setUser(normalizedProfile);
+      setUpdatedUser({
+        username: normalizedProfile.username,
+        email: normalizedProfile.email,
+        streamingPlatforms: normalizedProfile.streamingPlatforms
+      });
       setEditing(false);
     } catch (error) {
       console.error(t('errorUpdatingProfile'), error);
     }
   };
 
+  // Soumission du formulaire de modification du mot de passe
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -101,7 +126,10 @@ function ProfilePage() {
       return;
     }
     try {
-      await updatePassword({ currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword });
+      await updatePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordError('');
       setPasswordEditing(false);
@@ -119,13 +147,14 @@ function ProfilePage() {
     setEditing(false);
   };
 
-  // Ici, la sauvegarde des plateformes sélectionnées est effectuée via updateUserProfile.
-  // Ces informations (streamingPlatforms) sont ainsi enregistrées dans le profil utilisateur
-  // et pourront être exploitées par le ML pour personnaliser les recommandations.
   const handlePlatformsSubmit = async () => {
     try {
-      await updateUserProfile(updatedUser);
-      setUser(prev => ({ ...prev, streamingPlatforms: updatedUser.streamingPlatforms }));
+      const response = await updateUserProfile(updatedUser);
+      const normalizedProfile = normalizeProfile(response);
+      setUser(prev => ({
+        ...prev,
+        streamingPlatforms: normalizedProfile.streamingPlatforms
+      }));
       setEditingPlatforms(false);
     } catch (error) {
       console.error(t('errorUpdatingProfile'), error);
@@ -143,7 +172,7 @@ function ProfilePage() {
     setPasswordEditing(false);
   };
 
-  // Suppression du compte après confirmation
+  // Suppression du compte
   const handleDeleteAccount = async () => {
     try {
       await deleteAccount();
@@ -167,7 +196,7 @@ function ProfilePage() {
             <ProfileSkeleton theme={theme} width="75%" height="1rem" />
           ) : (
             <>
-              <p className="mb-2">{user.username}</p>
+              <p className="mb-2">{user.username || '-'}</p>
               {editing && (
                 <input
                   type="text"
@@ -186,7 +215,7 @@ function ProfilePage() {
             <ProfileSkeleton theme={theme} width="75%" height="1rem" />
           ) : (
             <>
-              <p className="mb-2">{user.email}</p>
+              <p className="mb-2">{user.email || '-'}</p>
               {editing && (
                 <input
                   type="email"
@@ -204,7 +233,7 @@ function ProfilePage() {
           {isLoading ? (
             <ProfileSkeleton theme={theme} width="50%" height="1rem" />
           ) : (
-            <p>{new Date(user.created_at).toLocaleDateString()}</p>
+            <p>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}</p>
           )}
         </div>
         {!editing ? (

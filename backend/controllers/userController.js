@@ -49,7 +49,7 @@ const userController = {
     }
   },
 
-  updateProfile: async (req, res) => {
+  /*updateProfile: async (req, res) => {
     try {
       const [affectedRows, [updatedUser]] = await User.update(req.body, {
         where: { user_id: req.user.id },
@@ -65,63 +65,46 @@ const userController = {
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la mise à jour du profil.' });
     }
-  },
+  },*/
 
-  // Modification de updateProfile pour gérer streamingPlatforms
   updateProfile: async (req, res) => {
     try {
       // Récupérer l'ID utilisateur à partir du token
       const authHeader = req.header('Authorization');
       const token = authHeader && authHeader.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: 'Authorization token is missing.' });
+      }
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.id;
       
       // Extraire streamingPlatforms et les autres champs à mettre à jour
       const { streamingPlatforms, ...fieldsToUpdate } = req.body;
       
-      let updatedUser;
-      // Si on a des champs à mettre à jour pour l'utilisateur
-      if (Object.keys(fieldsToUpdate).length > 0 && !streamingPlatforms) {
-        const [affectedRows, [userUpdated]] = await User.update(fieldsToUpdate, {
-          where: { user_id: userId },
-          returning: true,
-          individualHooks: true
-        });
-        if (affectedRows === 0) {
-          return res.status(404).json({ message: 'Utilisateur non trouvé.' });
-        }
-        updatedUser = userUpdated;
-      } else {
-        // Sinon, on récupère l'utilisateur existant pour continuer
-        updatedUser = await User.findOne({ where: { user_id: userId } });
+      // Récupérer l'utilisateur actuel
+      let userInstance = await User.findOne({ where: { user_id: userId } });
+      if (!userInstance) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
       }
       
-      // Traitement des plateformes de streaming
+      // Mettre à jour les champs (username, email, etc.) s'ils sont présents
+      if (Object.keys(fieldsToUpdate).length > 0) {
+        // Met à jour les autres champs
+        await userInstance.update(fieldsToUpdate);
+      }
+      
+      // Mise à jour des plateformes de streaming, que le tableau soit vide ou non
       if (Array.isArray(streamingPlatforms)) {
         // Supprimer les associations existantes
-        await UserPlatform.destroy({
-          where: { user_id: userId }
-        });
-        // Si on a des plateformes, créer de nouvelles associations
+        await UserPlatform.destroy({ where: { user_id: userId } });
+        // Ajouter les nouvelles associations si le tableau n'est pas vide
         if (streamingPlatforms.length > 0) {
-          const values = streamingPlatforms
-            .map((platformId, index) => `(:userId, :platform${index})`)
-            .join(',');
-        
-          const replacements = { userId };
-          streamingPlatforms.forEach((platformId, index) => {
-            replacements[`platform${index}`] = platformId;
-          });
-        
-          const result = await sequelize.query(
-            `INSERT INTO "userplatforms" ("user_id", "platform_id") VALUES ${values} RETURNING "user_id", "platform_id"`,
-            {
-              replacements,
-              type: sequelize.QueryTypes.INSERT
-            }
-          );
+          const newAssociations = streamingPlatforms.map(pid => ({
+            user_id: userId,
+            platform_id: Number(pid)
+          }));
+          await UserPlatform.bulkCreate(newAssociations);
         }
-        
       }
       
       // Récupérer les plateformes mises à jour
@@ -129,8 +112,10 @@ const userController = {
         where: { user_id: userId },
         attributes: ['platform_id']
       });
-      const userWithoutPassword = updatedUser.get({ plain: true });
-      userWithoutPassword.streamingPlatforms = platforms.map(up => up.platform_id);
+      
+      // Construire l'objet à renvoyer (sans le mot de passe)
+      const userWithoutPassword = userInstance.get({ plain: true });
+      userWithoutPassword.streamingPlatforms = platforms.map(p => p.platform_id);
       
       res.json(userWithoutPassword);
     } catch (error) {
