@@ -1,38 +1,33 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db'); // Utilise la même instance Sequelize
+const sequelize = require('../config/db'); // Use the same Sequelize instance
 
 const UserPlatform = sequelize.define(
-  'userplatform',
+  'UserPlatform',
   {
-    user_platform_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      autoIncrement: true,
-      primaryKey: true,
-    },
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      primaryKey: true,
     },
     platform_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      primaryKey: true,
     },
   },
   {
-    tableName: 'userplatforms', // Assurez-vous que ce nom correspond à votre table existante
+    tableName: 'userplatforms',
     timestamps: false,
   }
 );
 
-// Définition des associations pour UserPlatform
+// Associations
 UserPlatform.associate = (models) => {
-  // Chaque enregistrement dans userplatforms appartient à un utilisateur
   UserPlatform.belongsTo(models.User, {
     foreignKey: 'user_id',
     as: 'user'
   });
-  // Optionnel : si vous disposez d'un modèle Platform pour détailler les plateformes
+
   if (models.Platform) {
     UserPlatform.belongsTo(models.Platform, {
       foreignKey: 'platform_id',
