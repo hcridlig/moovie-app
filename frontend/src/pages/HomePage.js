@@ -25,7 +25,7 @@ function HomePage() {
   const [seriesTranslateX, setSeriesTranslateX] = useState(0);
   const [seriesMaxTranslateX, setSeriesMaxTranslateX] = useState(0);
 
-  // États pour les recommandations films
+  // États pour les recommandations films uniquement
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [recMoviesStartIndex, setRecMoviesStartIndex] = useState(0);
   const [isLoadingRecMovies, setIsLoadingRecMovies] = useState(true);
@@ -33,19 +33,12 @@ function HomePage() {
   const [recMoviesTranslateX, setRecMoviesTranslateX] = useState(0);
   const [recMoviesMaxTranslateX, setRecMoviesMaxTranslateX] = useState(0);
 
-  // États pour les recommandations séries
-  const [recommendedSeries, setRecommendedSeries] = useState([]);
-  const [recSeriesStartIndex, setRecSeriesStartIndex] = useState(0);
-  const [isLoadingRecSeries, setIsLoadingRecSeries] = useState(true);
-  const recSeriesCardRef = useRef(null);
-  const [recSeriesTranslateX, setRecSeriesTranslateX] = useState(0);
-  const [recSeriesMaxTranslateX, setRecSeriesMaxTranslateX] = useState(0);
-
   // Contextes et hooks supplémentaires
   const { theme } = useContext(SettingsContext);
   const { t } = useTranslation();
   const location = useLocation();
-  const { user } = useContext(AuthContext);
+  // Utilisation de isAuthenticated (voir AuthContext.js)
+  const { isAuthenticated } = useContext(AuthContext);
   const [toastMessage, setToastMessage] = useState(location.state?.deletionMessage || '');
 
   // Gestion du toast de confirmation
@@ -140,14 +133,11 @@ function HomePage() {
   const handleSeriesPrevious = () => setSeriesStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
   const isSeriesNextDisabled = () => seriesTranslateX >= seriesMaxTranslateX;
 
-  // Chargement des recommandations (films et séries) pour l'utilisateur connecté
+  // Chargement des recommandations (films uniquement) pour l'utilisateur connecté
   useEffect(() => {
-    if (user) {
-      const platformsQuery =
-        user.streamingPlatforms && user.streamingPlatforms.length > 0
-          ? `?platforms=${user.streamingPlatforms.join(',')}`
-          : '';
-      // Récupération des films recommandés
+    if (isAuthenticated) {
+      // Vous pouvez ajouter ici des query params spécifiques, si nécessaire
+      const platformsQuery = '';
       fetch(`/api/recommendations/movies${platformsQuery}`)
         .then((response) => response.json())
         .then((data) => {
@@ -158,22 +148,10 @@ function HomePage() {
           console.error("Erreur lors de la récupération des films recommandés:", error);
           setIsLoadingRecMovies(false);
         });
-      // Récupération des séries recommandées
-      fetch(`/api/recommendations/series${platformsQuery}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setRecommendedSeries(data);
-          setIsLoadingRecSeries(false);
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la récupération des séries recommandées:", error);
-          setIsLoadingRecSeries(false);
-        });
     } else {
       setIsLoadingRecMovies(false);
-      setIsLoadingRecSeries(false);
     }
-  }, [user]);
+  }, [isAuthenticated]);
 
   // Calcul du translateX pour le carrousel des films recommandés
   useEffect(() => {
@@ -198,43 +176,14 @@ function HomePage() {
     return () => window.removeEventListener('resize', updateRecMovieMeasurements);
   }, [recommendedMovies, recMoviesStartIndex]);
 
-  // Calcul du translateX pour le carrousel des séries recommandées
-  useEffect(() => {
-    const updateRecSeriesMeasurements = () => {
-      if (recSeriesCardRef.current) {
-        const style = window.getComputedStyle(recSeriesCardRef.current);
-        const width = recSeriesCardRef.current.offsetWidth;
-        const marginRight = parseFloat(style.marginRight) || 0;
-        const computedCardWidth = width + marginRight;
-        const totalWidth = recommendedSeries.length * computedCardWidth - marginRight;
-        const container = document.querySelector('.rec-series-carousel-container');
-        const containerWidth = container ? container.offsetWidth : 0;
-        const maxTranslate = Math.max(totalWidth - containerWidth, 0);
-        setRecSeriesMaxTranslateX(maxTranslate);
-        const currentTranslate = Math.min(recSeriesStartIndex * computedCardWidth, maxTranslate);
-        setRecSeriesTranslateX(currentTranslate);
-      }
-    };
-
-    updateRecSeriesMeasurements();
-    window.addEventListener('resize', updateRecSeriesMeasurements);
-    return () => window.removeEventListener('resize', updateRecSeriesMeasurements);
-  }, [recommendedSeries, recSeriesStartIndex]);
-
   const handleRecMoviesNext = () => setRecMoviesStartIndex((prev) => prev + 1);
   const handleRecMoviesPrevious = () => setRecMoviesStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
   const isRecMoviesNextDisabled = () => recMoviesTranslateX >= recMoviesMaxTranslateX;
 
-  const handleRecSeriesNext = () => setRecSeriesStartIndex((prev) => prev + 1);
-  const handleRecSeriesPrevious = () => setRecSeriesStartIndex((prev) => (prev > 0 ? prev - 1 : 0));
-  const isRecSeriesNextDisabled = () => recSeriesTranslateX >= recSeriesMaxTranslateX;
-
   return (
     <div className={`container mx-auto px-4 mt-20 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'text-gray-900'}`}>
       {toastMessage && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mt-14 px-4 py-2 rounded shadow-md ${
-          theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-green-500 text-white'
-        }`}>
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 mt-14 px-4 py-2 rounded shadow-md ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-green-500 text-white'}`}>
           {toastMessage}
         </div>
       )}
@@ -243,11 +192,7 @@ function HomePage() {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">{t('topMoviesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
-          <button
-            onClick={handlePrevious}
-            disabled={startIndex === 0}
-            className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-          >
+          <button onClick={handlePrevious} disabled={startIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
             &lt;
           </button>
           <div className="overflow-x-hidden mx-auto py-4 carousel-container">
@@ -265,11 +210,7 @@ function HomePage() {
                   ))}
             </div>
           </div>
-          <button
-            onClick={handleNext}
-            disabled={isNextDisabled()}
-            className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-          >
+          <button onClick={handleNext} disabled={isNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
             &gt;
           </button>
         </div>
@@ -279,11 +220,7 @@ function HomePage() {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">{t('topSeriesOfTheWeek')}</h2>
         <div className="relative flex items-center justify-center">
-          <button
-            onClick={handleSeriesPrevious}
-            disabled={seriesStartIndex === 0}
-            className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-          >
+          <button onClick={handleSeriesPrevious} disabled={seriesStartIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
             &lt;
           </button>
           <div className="overflow-x-hidden mx-auto py-4 series-carousel-container">
@@ -301,28 +238,18 @@ function HomePage() {
                   ))}
             </div>
           </div>
-          <button
-            onClick={handleSeriesNext}
-            disabled={isSeriesNextDisabled()}
-            className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-          >
+          <button onClick={handleSeriesNext} disabled={isSeriesNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
             &gt;
           </button>
         </div>
       </section>
 
-      {/* Section Recommandations (affichée uniquement si l'utilisateur est connecté) */}
-      {user && (
+      {/* Section Recommandations (films uniquement, affichée si l'utilisateur est authentifié) */}
+      {isAuthenticated && (
         <section className="mt-12">
           <h2 className="text-2xl font-bold mb-4">Recommandations pour vous</h2>
-
-          {/* Carrousel des films recommandés */}
           <div className="relative flex items-center justify-center mb-8">
-            <button
-              onClick={handleRecMoviesPrevious}
-              disabled={recMoviesStartIndex === 0}
-              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-            >
+            <button onClick={handleRecMoviesPrevious} disabled={recMoviesStartIndex === 0} className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
               &lt;
             </button>
             <div className="overflow-x-hidden mx-auto py-4 rec-movies-carousel-container">
@@ -340,44 +267,7 @@ function HomePage() {
                     ))}
               </div>
             </div>
-            <button
-              onClick={handleRecMoviesNext}
-              disabled={isRecMoviesNextDisabled()}
-              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-            >
-              &gt;
-            </button>
-          </div>
-
-          {/* Carrousel des séries recommandées */}
-          <div className="relative flex items-center justify-center">
-            <button
-              onClick={handleRecSeriesPrevious}
-              disabled={recSeriesStartIndex === 0}
-              className="absolute left-0 ml-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-            >
-              &lt;
-            </button>
-            <div className="overflow-x-hidden mx-auto py-4 rec-series-carousel-container">
-              <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${recSeriesTranslateX}px)` }}>
-                {isLoadingRecSeries
-                  ? Array.from({ length: 5 }).map((_, idx) => (
-                      <div key={idx} ref={idx === 0 ? recSeriesCardRef : null} className={`flex-shrink-0 ${idx !== recommendedSeries.length - 1 ? 'mr-10' : ''}`}>
-                        <MovieSkeleton />
-                      </div>
-                    ))
-                  : recommendedSeries.map((item, idx) => (
-                      <div key={`${item.id}-${idx}`} ref={idx === 0 ? recSeriesCardRef : null} className={`flex-shrink-0 ${idx !== recommendedSeries.length - 1 ? 'mr-10' : ''}`}>
-                        <SerieCard serie={item} index={idx + 1} />
-                      </div>
-                    ))}
-              </div>
-            </div>
-            <button
-              onClick={handleRecSeriesNext}
-              disabled={isRecSeriesNextDisabled()}
-              className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2"
-            >
+            <button onClick={handleRecMoviesNext} disabled={isRecMoviesNextDisabled()} className="absolute right-0 mr-1 z-10 bg-gray-300 dark:bg-gray-700 bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-2">
               &gt;
             </button>
           </div>
