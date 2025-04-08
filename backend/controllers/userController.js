@@ -28,10 +28,22 @@ const userController = {
         where: { user_id: decoded.id },
         attributes: { exclude: ['password'] }
       });
+
+      // Inclure les plateformes associées
+      const platforms = await UserPlatform.findAll({
+        where: { user_id: decoded.id },
+        attributes: ['platform_id']
+      });
       if (!user) {
         return res.status(404).json({ message: 'Utilisateur non trouvé.' });
       }
-      res.json(user);
+      const profileData = {
+        user,
+        platforms: platforms.map(platform => platform.platform_id)
+    };
+
+    res.json(profileData);
+    
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération du profil.' });
     }
