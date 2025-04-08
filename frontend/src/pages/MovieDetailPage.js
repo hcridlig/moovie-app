@@ -228,12 +228,14 @@ function MovieDetailPage() {
     } else {
       setSelectedActor(actor);
       fetchActorFilmography(actor.id);
+      // Réinitialisation du carrousel à 0 pour commencer depuis le début
+      setActorCarouselIndex(0);
       // Affichage de la filmographie avec un léger délai
       setTimeout(() => {
         setFilmographyVisible(true);
       }, 50);
     }
-  };
+  };  
 
   const fetchActorFilmography = async (actorId) => {
     try {
