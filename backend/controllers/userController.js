@@ -1,4 +1,4 @@
-const { User, Preference, sequelize } = require('../models');
+const { User, Preference, UserPlatform, sequelize } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { get } = require('../routes/users');
@@ -15,6 +15,7 @@ const userController = {
     }
   },
 
+  // Modification de getProfile pour éventuellement inclure les plateformes associées.
   getProfile: async (req, res) => {
     const authHeader = req.header('Authorization');
     const token = authHeader && authHeader.split(' ')[1];
@@ -25,34 +26,85 @@ const userController = {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findOne({
         where: { user_id: decoded.id },
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['password'] },
+        include: [{
+          model: UserPlatform,
+          as: 'platforms',
+          attributes: ['platform_id']
+        }]
       });
       if (!user) {
         return res.status(404).json({ message: 'Utilisateur non trouvé.' });
       }
-      res.json(user);
+      // Transformation de l'objet utilisateur pour créer "streamingPlatforms"
+      const userPlain = user.get({ plain: true });
+      userPlain.streamingPlatforms = userPlain.platforms ? userPlain.platforms.map(p => p.platform_id) : [];
+      delete userPlain.platforms;
+      res.json(userPlain);
     } catch (error) {
       res.status(500).json({ message: 'Erreur lors de la récupération du profil.' });
     }
   },
 
+  // Modification de updateProfile pour gérer streamingPlatforms
   updateProfile: async (req, res) => {
     try {
-      const [affectedRows, [updatedUser]] = await User.update(req.body, {
-        where: { user_id: req.user.id },
-        returning: true,
-        individualHooks: true
-      });
-      if (affectedRows === 0) {
-        return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+      // Récupérer l'ID utilisateur à partir du token
+      const authHeader = req.header('Authorization');
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.id;
+      
+      // Extraire streamingPlatforms et les autres champs à mettre à jour
+      const { streamingPlatforms, ...fieldsToUpdate } = req.body;
+      
+      let updatedUser;
+      // Si on a des champs à mettre à jour pour l'utilisateur
+      if (Object.keys(fieldsToUpdate).length > 0) {
+        const [affectedRows, [userUpdated]] = await User.update(fieldsToUpdate, {
+          where: { user_id: userId },
+          returning: true,
+          individualHooks: true
+        });
+        if (affectedRows === 0) {
+          return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+        }
+        updatedUser = userUpdated;
+      } else {
+        // Sinon, on récupère l'utilisateur existant pour continuer
+        updatedUser = await User.findOne({ where: { user_id: userId } });
       }
+      
+      // Traitement des plateformes de streaming
+      if (Array.isArray(streamingPlatforms)) {
+        // Supprimer les associations existantes
+        await UserPlatform.destroy({
+          where: { user_id: userId }
+        });
+        // Si on a des plateformes, créer de nouvelles associations
+        if (streamingPlatforms.length > 0) {
+          const newAssociations = streamingPlatforms.map(pid => ({
+            user_id: userId,
+            platform_id: Number(pid) // conversion en nombre
+          }));
+          await UserPlatform.bulkCreate(newAssociations);
+        }
+      }
+      
+      // Récupérer les plateformes mises à jour
+      const platforms = await UserPlatform.findAll({
+        where: { user_id: userId },
+        attributes: ['platform_id']
+      });
       const userWithoutPassword = updatedUser.get({ plain: true });
-      delete userWithoutPassword.password;
+      userWithoutPassword.streamingPlatforms = platforms.map(up => up.platform_id);
+      
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error('Erreur updateProfile:', error);
       res.status(500).json({ message: 'Erreur lors de la mise à jour du profil.' });
     }
-  },
+  },  
 
   changePassword: async (req, res) => {
     const { currentPassword, newPassword } = req.body;

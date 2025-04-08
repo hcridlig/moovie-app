@@ -1,3 +1,4 @@
+// ProfilePage.js
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, updatePassword, deleteAccount, getPlatforms } from '../utils/api';
@@ -118,6 +119,9 @@ function ProfilePage() {
     setEditing(false);
   };
 
+  // Ici, la sauvegarde des plateformes sélectionnées est effectuée via updateUserProfile.
+  // Ces informations (streamingPlatforms) sont ainsi enregistrées dans le profil utilisateur
+  // et pourront être exploitées par le ML pour personnaliser les recommandations.
   const handlePlatformsSubmit = async () => {
     try {
       await updateUserProfile(updatedUser);

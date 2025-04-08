@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db'); // Centralized Sequelize instance
+const sequelize = require('../config/db'); // Instance centralisée de Sequelize
 
 const User = sequelize.define(
   'user',
@@ -45,5 +45,14 @@ const User = sequelize.define(
     timestamps: false,
   }
 );
+
+// Définition de l'association avec UserPlatform
+User.associate = (models) => {
+  // Un utilisateur peut avoir plusieurs plateformes associées via la table de jointure userplatforms
+  User.hasMany(models.UserPlatform, {
+    foreignKey: 'user_id',
+    as: 'platforms'
+  });
+};
 
 module.exports = User;
