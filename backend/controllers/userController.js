@@ -292,22 +292,31 @@ const userController = {
               SELECT movie_id
               FROM preferences
               WHERE user_id = :userId AND liked = TRUE AND media_type = 'movie'
-            ),
-                      
-                      
-            liked_embeddings AS (
+              ),
+              liked_embeddings AS (
               SELECT movie_id, embeddings
               FROM movie_embeddings
               WHERE movie_id IN (SELECT movie_id FROM liked_movies)
-            )
-                      
-                      
-            SELECT  me.movie_id AS neighbor_movie_id
-            FROM liked_embeddings lm
-            JOIN movie_embeddings me
-            ON lm.movie_id != me.movie_id
-            ORDER BY lm.movie_id, me.embeddings <=> lm.embeddings
-            LIMIT (SELECT COUNT(*) * 3 FROM liked_movies);`,
+              ),
+              neighbors AS (
+              SELECT 
+                lm.movie_id AS liked_movie_id,
+                me.movie_id AS neighbor_movie_id,
+                me.embeddings <=> lm.embeddings AS distance
+              FROM liked_embeddings lm
+              JOIN movie_embeddings me
+                ON lm.movie_id != me.movie_id
+              )
+              SELECT liked_movie_id, neighbor_movie_id
+              FROM (
+              SELECT 
+                liked_movie_id, 
+                neighbor_movie_id,
+                distance,
+                ROW_NUMBER() OVER (PARTITION BY liked_movie_id ORDER BY distance ASC) AS rn
+              FROM neighbors
+              ) ranked
+              WHERE rn <= 3;`,
               {
                   replacements: { userId },
                   type: sequelize.QueryTypes.SELECT,
